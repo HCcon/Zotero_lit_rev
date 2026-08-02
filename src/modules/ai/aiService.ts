@@ -1,11 +1,14 @@
 import { aiComplete } from "./aiClient";
 import {
+  CODING_SYSTEM,
   PARAPHRASE_SYSTEM,
   RELEVANCE_SYSTEM,
+  buildCodingPrompt,
   buildParaphrasePrompt,
   buildRelevancePrompt,
 } from "./prompts";
 import { getAIConfig } from "./aiConfig";
+import { CODES } from "../coding/codes";
 import { type Concept, type Finding, type Project } from "../types";
 
 /**
@@ -49,6 +52,20 @@ export async function evaluateRelevance(
     explanation: String(obj.explanation ?? "").trim(),
     model: getAIConfig().model,
   };
+}
+
+export interface CodingResult {
+  codeId: string;
+  rationale: string;
+}
+
+export async function classifyFinding(
+  finding: Finding,
+): Promise<CodingResult> {
+  const raw = await aiComplete(CODING_SYSTEM, buildCodingPrompt(finding), 256);
+  const obj = extractJSON(raw);
+  const codeId = CODES.some((c) => c.id === obj.code) ? obj.code : "context";
+  return { codeId, rationale: String(obj.rationale ?? "").trim() };
 }
 
 export async function generateParaphrase(

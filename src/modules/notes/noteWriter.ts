@@ -1,3 +1,4 @@
+import { codeLabel } from "../coding/codes";
 import { type Finding, type Project } from "../types";
 
 /**
@@ -45,6 +46,9 @@ function buildNoteHTML(
     `<h2>Zotero Literature Review — Fundstelle</h2>`,
     `<p><b>Projekt:</b> ${esc(project.name)}</p>`,
     `<p><b>Suchkonzept:</b> ${esc(finding.conceptName)}</p>`,
+    finding.codeId
+      ? `<p><b>Kodierung:</b> ${esc(codeLabel(finding.codeId))}</p>`
+      : "",
     `<p><b>Originalfundstelle (${locLabel}):</b><br/>„${esc(finding.snippet)}"</p>`,
     `<p><b>Relevanz:</b> Score ${finding.score} — ${esc(finding.explanation)}</p>`,
     aiBlock,

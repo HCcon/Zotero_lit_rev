@@ -80,6 +80,14 @@ export interface Finding {
   aiExplanation?: string;
   /** Model that produced the AI rating. */
   aiModel?: string;
+  /** Phase 4: thematic code category id (see coding/codes.ts). */
+  codeId?: string;
+  /** Review status of the code (Kap. 23 – Vorschlag → Bestätigung). */
+  codeStatus?: "suggested" | "confirmed" | "rejected";
+  /** Whether the code was assigned by AI or manually. */
+  codeSource?: "ai" | "manual";
+  /** Short rationale from the AI classifier. */
+  codeRationale?: string;
   /** Key of the Zotero note created on acceptance, if any. */
   noteKey?: string;
 }

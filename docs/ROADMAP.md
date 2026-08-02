@@ -63,10 +63,14 @@ Entspricht den Akzeptanzkriterien in KONZEPT.md Kap. 20.
 - [ ] Evidenztabelle als XLSX/HTML
 - [ ] Review-Protokoll mit Versionierung, Freigabestatus, Mehrbenutzer
 
-## Phase 4 – Wissenschaftliche Inhaltsanalyse
+## Phase 4 – Wissenschaftliche Inhaltsanalyse (in Arbeit)
+- [x] Thematische Kodierung mit 7-Farben-System (Definitionen, Methodik,
+      Ergebnisse, Argumente, Kritik/Limitationen, Forschungslücken, Kontext)
+- [x] KI-Kodierung als Vorschlag (einzeln + Stapel), manuell prüf-/änderbar
+- [x] Farbmarkierung in Zotero über farbige Tags je Kategorie
 - [ ] Extraktion von Methoden/Ergebnissen/Variablen
-- [ ] Forschungslücken, Qualitätsbewertung
-- [ ] Studienvergleich, Synthese
+- [ ] Qualitätsbewertung (Risk of Bias)
+- [ ] Studienvergleich, Synthese, Forschungslücken-Matrix
 - [ ] Strukturierte Review-Berichte (DOCX)
 
 ## Grundsätze (gelten in allen Phasen)

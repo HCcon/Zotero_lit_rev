@@ -1,4 +1,5 @@
 import { FilePickerHelper } from "zotero-plugin-toolkit";
+import { codeLabel } from "../coding/codes";
 import { type Finding, type Project } from "../types";
 
 /**
@@ -27,6 +28,7 @@ const CSV_COLUMNS: { header: string; get: (f: Finding) => string }[] = [
   { header: "Getroffene Begriffe", get: (f) => f.matchedTerms.join("; ") },
   { header: "Fundstelle", get: (f) => f.snippet },
   { header: "Status", get: (f) => f.reviewStatus },
+  { header: "Kodierung", get: (f) => codeLabel(f.codeId) },
   { header: "KI-Score", get: (f) => (f.aiScore != null ? String(f.aiScore) : "") },
   { header: "KI-Empfehlung", get: (f) => f.aiRecommendation ?? "" },
   { header: "KI-Begruendung", get: (f) => f.aiExplanation ?? "" },

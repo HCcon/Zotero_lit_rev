@@ -1,3 +1,4 @@
+import { CODES } from "../coding/codes";
 import { type Concept, type Finding, type Project } from "../types";
 
 /**
@@ -55,6 +56,28 @@ export function buildRelevancePrompt(
   ]
     .filter(Boolean)
     .join("\n");
+}
+
+export const CODING_SYSTEM =
+  "Du bist ein wissenschaftlicher Assistent für qualitative Inhaltsanalyse. " +
+  "Ordne eine Textstelle genau EINER Kodierkategorie zu. Wähle nur aus den " +
+  "vorgegebenen Kategorien. Antworte ausschließlich im geforderten JSON-Format.";
+
+export function buildCodingPrompt(finding: Finding): string {
+  const cats = CODES.map((c) => `- ${c.id}: ${c.label} — ${c.description}`).join(
+    "\n",
+  );
+  return [
+    "Kodierkategorien:",
+    cats,
+    "",
+    "Zu kodierende Textstelle:",
+    `"""${finding.snippet}"""`,
+    "",
+    "Ordne die Textstelle genau einer Kategorie zu. Antworte NUR mit einem " +
+      "JSON-Objekt der Form:",
+    '{"code": "<kategorie-id>", "rationale": "<kurze Begründung, max. 1 Satz>"}',
+  ].join("\n");
 }
 
 export const PARAPHRASE_SYSTEM =

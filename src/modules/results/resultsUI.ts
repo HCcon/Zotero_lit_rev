@@ -4,8 +4,14 @@ import { runAnalysis, countItems } from "../search/searchEngine";
 import { createFindingNote } from "../notes/noteWriter";
 import { exportFindings } from "../export/exporter";
 import { openAISettings } from "../ai/settingsUI";
-import { evaluateRelevance, generateParaphrase } from "../ai/aiService";
+import {
+  evaluateRelevance,
+  generateParaphrase,
+  classifyFinding,
+} from "../ai/aiService";
 import { isAIReady } from "../ai/aiConfig";
+import { CODES, codeById, codeLabel } from "../coding/codes";
+import { applyCodeTags } from "../coding/tagWriter";
 import { type Concept, type Finding } from "../types";
 
 /**
@@ -29,7 +35,8 @@ function findingLabel(f: Finding): string {
   const snippet =
     f.snippet.length > 55 ? f.snippet.slice(0, 55) + "…" : f.snippet;
   const ai = typeof f.aiScore === "number" ? ` KI:${f.aiScore}` : "";
-  return `${statusMark(f)} [${f.score}${ai}] ${who} · ${f.conceptName} — ${snippet}`;
+  const code = f.codeId ? ` ‹${codeById(f.codeId)?.color ?? ""}›` : "";
+  return `${statusMark(f)} [${f.score}${ai}]${code} ${who} · ${f.conceptName} — ${snippet}`;
 }
 
 /** Runs the analysis with a progress window and stores the findings. */
@@ -126,19 +133,68 @@ async function batchEvaluate(
   pw.startCloseTimer(4000);
 }
 
+/** Phase 4 – KI-Kodierung aller Fundstellen als Vorschläge. */
+async function batchCode(pm: ProjectManager, projectId: string): Promise<void> {
+  const findings = await pm.listFindings(projectId);
+  if (findings.length === 0) return;
+
+  const pw = new ProgressWindowHelper("Zotero Literature Review — KI");
+  pw.createLine({ text: `Kodierung 0/${findings.length} …`, progress: 0 });
+  pw.show();
+
+  let done = 0;
+  let errors = 0;
+  for (const f of findings) {
+    try {
+      const r = await classifyFinding(f);
+      await pm.updateFinding(projectId, f.findingId, {
+        codeId: r.codeId,
+        codeStatus: "suggested",
+        codeSource: "ai",
+        codeRationale: r.rationale,
+      });
+    } catch (e) {
+      errors++;
+      Zotero.debug(`[zotero-lit-rev] batch code error: ${e}`);
+    }
+    done++;
+    pw.changeLine({
+      text: `Kodierung ${done}/${findings.length} …`,
+      progress: Math.round((done / findings.length) * 100),
+    });
+  }
+  pw.changeLine({
+    text: `Fertig: ${done - errors} kodiert${errors ? `, ${errors} Fehler` : ""}. Bitte prüfen.`,
+    progress: 100,
+  });
+  pw.startCloseTimer(4000);
+}
+
 /** Detail-/Paraphrase-Dialog für eine Fundstelle. */
 async function openFindingDetail(
   pm: ProjectManager,
   projectId: string,
   finding: Finding,
 ): Promise<void> {
-  const data: Record<string, any> = { paraphrase: finding.paraphrase ?? "" };
+  const data: Record<string, any> = {
+    paraphrase: finding.paraphrase ?? "",
+    code: finding.codeId ?? "",
+  };
   const aiInfo =
     typeof finding.aiScore === "number"
       ? `KI-Relevanz: ${finding.aiScore}/100 (${finding.aiRecommendation ?? "?"}) — ${finding.aiExplanation ?? ""}`
       : "Noch keine KI-Bewertung.";
+  const codeOptions = [
+    { tag: "option", namespace: "html", properties: { value: "", textContent: "(keine Kodierung)" } },
+    ...CODES.map((c) => ({
+      tag: "option",
+      namespace: "html",
+      properties: { value: c.id, textContent: `${c.color} – ${c.label}` },
+      attributes: c.id === data.code ? { selected: "selected" } : {},
+    })),
+  ];
 
-  const dialog = new DialogHelper(6, 1);
+  const dialog = new DialogHelper(7, 1);
   dialog
     .addCell(0, 0, {
       tag: "h3",
@@ -182,6 +238,26 @@ async function openFindingDetail(
       id: "ai-info",
       styles: { color: "gray", maxWidth: "520px" },
       properties: { textContent: aiInfo },
+    })
+    .addCell(6, 0, {
+      tag: "div",
+      namespace: "html",
+      styles: { display: "flex", alignItems: "center", gap: "8px", marginTop: "4px" },
+      children: [
+        {
+          tag: "label",
+          namespace: "html",
+          styles: { fontWeight: "bold" },
+          properties: { textContent: "Kodierung:" },
+        },
+        {
+          tag: "select",
+          namespace: "html",
+          attributes: { "data-bind": "code", "data-prop": "value" },
+          styles: { width: "300px" },
+          children: codeOptions as any,
+        },
+      ],
     })
     .addButton("Speichern", "save")
     .addButton("KI-Bewertung", "airate", {
@@ -227,10 +303,29 @@ async function openFindingDetail(
         }
       },
     })
+    .addButton("KI-Kodierung", "aicode", {
+      noClose: true,
+      callback: async () => {
+        try {
+          const r = await classifyFinding(finding);
+          const sel = dialog.window.document.querySelector(
+            'select[data-bind="code"]',
+          ) as HTMLSelectElement | null;
+          if (sel) sel.value = r.codeId;
+          data.code = r.codeId;
+          data.__aiCode = { rationale: r.rationale };
+          mainWindow().alert(
+            `KI-Vorschlag: ${codeLabel(r.codeId)}\n${r.rationale}`,
+          );
+        } catch (e) {
+          mainWindow().alert(`KI-Kodierung fehlgeschlagen:\n${e}`);
+        }
+      },
+    })
     .addButton("Abbrechen", "cancel")
     .setDialogData(data);
 
-  dialog.open("Fundstelle — Details & Paraphrase", {
+  dialog.open("Fundstelle — Details, Paraphrase & Kodierung", {
     centerscreen: true,
     resizable: true,
     fitContent: true,
@@ -239,11 +334,18 @@ async function openFindingDetail(
   await (data as any).unloadLock?.promise;
   if (data._lastButtonId === "save") {
     const ai = data.__aiParaphrase;
+    const newCode = String(data.code ?? "");
+    const codeChanged = newCode !== (finding.codeId ?? "");
     await pm.updateFinding(projectId, finding.findingId, {
       paraphrase: String(data.paraphrase ?? "").trim(),
       paraphraseSource: ai ? "ai" : "manual",
       paraphraseStatus: ai ? "ai-unreviewed" : "manual",
       paraphraseModel: ai ? ai.model : undefined,
+      codeId: newCode || undefined,
+      // Manually chosen (or confirmed) code counts as confirmed.
+      codeStatus: newCode ? "confirmed" : undefined,
+      codeSource: codeChanged && data.__aiCode ? "ai" : "manual",
+      codeRationale: data.__aiCode?.rationale,
     });
   }
 }
@@ -414,6 +516,55 @@ export async function openResults(
         }
         await batchEvaluate(pm, projectId);
         void openResults(pm, projectId);
+      },
+    })
+    .addButton("KI: alle kodieren", "aicode", {
+      noClose: true,
+      callback: async () => {
+        if (!isAIReady()) {
+          mainWindow().alert(
+            "KI ist nicht konfiguriert. Bitte zuerst „KI-Einstellungen…\".",
+          );
+          return;
+        }
+        try {
+          dialog.window?.close();
+        } catch {
+          /* ignore */
+        }
+        await batchCode(pm, projectId);
+        void openResults(pm, projectId);
+      },
+    })
+    .addButton("Kodierung → Zotero-Tags", "tags", {
+      noClose: true,
+      callback: async () => {
+        const p = await pm.get(projectId);
+        if (!p) return;
+        const coded = (p.findings ?? []).filter(
+          (f) => f.codeId && f.codeStatus !== "rejected",
+        ).length;
+        if (coded === 0) {
+          mainWindow().alert(
+            "Keine Kodierungen vorhanden. Bitte zuerst kodieren (KI oder manuell).",
+          );
+          return;
+        }
+        if (
+          !mainWindow().confirm(
+            `${coded} kodierte Fundstelle(n) als farbige Zotero-Tags an den Einträgen übernehmen?`,
+          )
+        ) {
+          return;
+        }
+        try {
+          const res = await applyCodeTags(p, false);
+          mainWindow().alert(
+            `${res.tagsAdded} Tag(s) an ${res.itemsTagged} Eintrag/Einträgen gesetzt.`,
+          );
+        } catch (e) {
+          mainWindow().alert(`Fehler beim Setzen der Tags:\n${e}`);
+        }
       },
     })
     .addButton("Schließen", "close")

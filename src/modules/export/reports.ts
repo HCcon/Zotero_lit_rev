@@ -5,6 +5,7 @@ import {
   exclusionReasonLabel,
   prismaCounts,
 } from "../screening/screening";
+import { codeLabel } from "../coding/codes";
 
 /**
  * Phase 3 – Berichte: Screening-Liste, PRISMA-Kennzahlen, Evidenztabelle.
@@ -115,6 +116,7 @@ const EVID_COLS: {
   { h: "Jahr", get: (r) => r.year },
   { h: "Titel", get: (r) => r.title },
   { h: "Suchkonzept", get: (_r, f) => f?.conceptName ?? "" },
+  { h: "Kodierung", get: (_r, f) => codeLabel(f?.codeId) },
   { h: "Abschnitt", get: (_r, f) => f?.section ?? "" },
   { h: "Fundstelle", get: (_r, f) => f?.snippet ?? "" },
   { h: "Paraphrase", get: (_r, f) => f?.paraphrase ?? "" },
