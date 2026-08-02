@@ -117,6 +117,8 @@ export interface Project {
   findings?: Finding[];
   /** Per-item screening records (Phase 3). */
   screening?: ScreeningRecord[];
+  /** Structured study extractions (Phase 4). */
+  extractions?: Extraction[];
   /** ISO datetime of the last analysis run. */
   lastRun?: string;
   /** ISO date (YYYY-MM-DD). */
@@ -156,6 +158,20 @@ export interface ScreeningRecord {
   isDuplicate?: boolean;
   /** itemKey of the record this duplicates. */
   duplicateOf?: string;
+  updatedAt?: string;
+}
+
+/** Structured study extraction (Konzept Kap. 11/19). One per item. */
+export interface Extraction {
+  itemKey: string;
+  title: string;
+  creator: string;
+  year: string;
+  /** Field id (see extraction/extraction.ts) → value. */
+  fields: Record<string, string>;
+  source?: "ai" | "manual";
+  model?: string;
+  status?: "ai-unreviewed" | "reviewed";
   updatedAt?: string;
 }
 

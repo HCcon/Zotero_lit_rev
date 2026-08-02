@@ -2,6 +2,7 @@ import { loadData, saveData } from "../store";
 import { detectDuplicates, gatherItemMetas } from "../screening/screening";
 import {
   type Concept,
+  type Extraction,
   type Finding,
   type PluginData,
   type Project,
@@ -259,5 +260,37 @@ export class ProjectManager {
     const count = detectDuplicates(project.screening);
     await saveData(this.data);
     return count;
+  }
+
+  // --- Phase 4: Extraktion ------------------------------------------------
+
+  async listExtractions(projectId: string): Promise<Extraction[]> {
+    const project = await this.get(projectId);
+    return project?.extractions ?? [];
+  }
+
+  async getExtraction(
+    projectId: string,
+    itemKey: string,
+  ): Promise<Extraction | undefined> {
+    const project = await this.get(projectId);
+    return project?.extractions?.find((e) => e.itemKey === itemKey);
+  }
+
+  async upsertExtraction(
+    projectId: string,
+    extraction: Extraction,
+  ): Promise<void> {
+    await this.ensureLoaded();
+    const project = this.data.projects.find((p) => p.projectId === projectId);
+    if (!project) return;
+    if (!project.extractions) project.extractions = [];
+    const idx = project.extractions.findIndex(
+      (e) => e.itemKey === extraction.itemKey,
+    );
+    const withTime = { ...extraction, updatedAt: new Date().toISOString() };
+    if (idx >= 0) project.extractions[idx] = withTime;
+    else project.extractions.push(withTime);
+    await saveData(this.data);
   }
 }

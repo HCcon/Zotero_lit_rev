@@ -1,14 +1,20 @@
 import { aiComplete } from "./aiClient";
 import {
   CODING_SYSTEM,
+  EXTRACTION_SYSTEM,
   PARAPHRASE_SYSTEM,
   RELEVANCE_SYSTEM,
   buildCodingPrompt,
+  buildExtractionPrompt,
   buildParaphrasePrompt,
   buildRelevancePrompt,
 } from "./prompts";
 import { getAIConfig } from "./aiConfig";
 import { CODES } from "../coding/codes";
+import {
+  EXTRACTION_FIELDS,
+  NOT_REPORTED,
+} from "../extraction/extraction";
 import { type Concept, type Finding, type Project } from "../types";
 
 /**
@@ -75,4 +81,22 @@ export async function generateParaphrase(
   const prompt = buildParaphrasePrompt(project, finding);
   const text = await aiComplete(PARAPHRASE_SYSTEM, prompt, 512);
   return { text: text.trim(), model: getAIConfig().model };
+}
+
+export async function extractStudy(
+  project: Project,
+  text: string,
+): Promise<{ fields: Record<string, string>; model: string }> {
+  const raw = await aiComplete(
+    EXTRACTION_SYSTEM,
+    buildExtractionPrompt(project, text),
+    1500,
+  );
+  const obj = extractJSON(raw);
+  const fields: Record<string, string> = {};
+  for (const f of EXTRACTION_FIELDS) {
+    const v = obj[f.id];
+    fields[f.id] = v == null || String(v).trim() === "" ? NOT_REPORTED : String(v).trim();
+  }
+  return { fields, model: getAIConfig().model };
 }

@@ -68,7 +68,8 @@ Entspricht den Akzeptanzkriterien in KONZEPT.md Kap. 20.
       Ergebnisse, Argumente, Kritik/Limitationen, Forschungslücken, Kontext)
 - [x] KI-Kodierung als Vorschlag (einzeln + Stapel), manuell prüf-/änderbar
 - [x] Farbmarkierung in Zotero über farbige Tags je Kategorie
-- [ ] Extraktion von Methoden/Ergebnissen/Variablen
+- [x] Strukturierte Extraktion von Studienmerkmalen (16 Felder, KI + manuell)
+      inkl. Studiencharakteristika-Export
 - [ ] Qualitätsbewertung (Risk of Bias)
 - [ ] Studienvergleich, Synthese, Forschungslücken-Matrix
 - [ ] Strukturierte Review-Berichte (DOCX)

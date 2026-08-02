@@ -1,4 +1,5 @@
 import { CODES } from "../coding/codes";
+import { EXTRACTION_FIELDS, NOT_REPORTED } from "../extraction/extraction";
 import { type Concept, type Finding, type Project } from "../types";
 
 /**
@@ -77,6 +78,33 @@ export function buildCodingPrompt(finding: Finding): string {
     "Ordne die Textstelle genau einer Kategorie zu. Antworte NUR mit einem " +
       "JSON-Objekt der Form:",
     '{"code": "<kategorie-id>", "rationale": "<kurze Begründung, max. 1 Satz>"}',
+  ].join("\n");
+}
+
+export const EXTRACTION_SYSTEM =
+  "Du bist ein wissenschaftlicher Assistent für die strukturierte " +
+  "Datenextraktion aus Studien. Extrahiere NUR Informationen, die im Text " +
+  `tatsächlich enthalten sind. Nicht gefundene Angaben trägst du als "${NOT_REPORTED}" ` +
+  "ein. Erfinde nichts. Antworte ausschließlich im geforderten JSON-Format.";
+
+export function buildExtractionPrompt(
+  project: Project,
+  text: string,
+): string {
+  const fields = EXTRACTION_FIELDS.map(
+    (f) => `- ${f.id}: ${f.label}`,
+  ).join("\n");
+  const keys = EXTRACTION_FIELDS.map((f) => `"${f.id}": "…"`).join(", ");
+  return [
+    `Forschungsfrage (Kontext): ${project.researchQuestion || "(nicht angegeben)"}`,
+    "",
+    "Extrahiere die folgenden Felder aus dem Studientext:",
+    fields,
+    "",
+    "Studientext (ggf. gekürzt):",
+    `"""${text}"""`,
+    "",
+    `Antworte NUR mit einem JSON-Objekt: { ${keys} }. Nicht gefundene Angaben: "${NOT_REPORTED}".`,
   ].join("\n");
 }
 

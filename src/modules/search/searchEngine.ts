@@ -329,3 +329,14 @@ export async function runAnalysis(
 export function countItems(project: Project): number {
   return collectItems(project).length;
 }
+
+/** Returns the combined text of a single item (for Phase-4 extraction). */
+export async function getItemTextByKey(
+  libraryID: number,
+  itemKey: string,
+): Promise<{ title: string; abstract: string; fulltext: string } | null> {
+  const item = (Zotero as any).Items.getByLibraryAndKey(libraryID, itemKey);
+  if (!item) return null;
+  const t = await getItemText(item);
+  return { title: t.title, abstract: t.abstract, fulltext: t.fulltext };
+}

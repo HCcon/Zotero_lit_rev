@@ -6,6 +6,7 @@ import {
   prismaCounts,
 } from "../screening/screening";
 import { codeLabel } from "../coding/codes";
+import { EXTRACTION_FIELDS } from "../extraction/extraction";
 
 /**
  * Phase 3 – Berichte: Screening-Liste, PRISMA-Kennzahlen, Evidenztabelle.
@@ -150,6 +151,33 @@ export async function exportEvidence(project: Project): Promise<string | null> {
     "Evidenztabelle als CSV",
     "csv",
     `${sanitize(project.name)}-evidenz.csv`,
+    [header, ...rows].join("\n"),
+  );
+}
+
+// --- Study characteristics (extraction) table -----------------------------
+
+export async function exportExtractionTable(
+  project: Project,
+): Promise<string | null> {
+  const extractions = project.extractions ?? [];
+  const header = ["Autor", "Jahr", "Titel", ...EXTRACTION_FIELDS.map((f) => f.label)]
+    .map(csvCell)
+    .join(",");
+  const rows = extractions.map((e) =>
+    [
+      e.creator,
+      e.year,
+      e.title,
+      ...EXTRACTION_FIELDS.map((f) => e.fields?.[f.id] ?? ""),
+    ]
+      .map(csvCell)
+      .join(","),
+  );
+  return saveWithPicker(
+    "Studiencharakteristika als CSV",
+    "csv",
+    `${sanitize(project.name)}-studiencharakteristika.csv`,
     [header, ...rows].join("\n"),
   );
 }
