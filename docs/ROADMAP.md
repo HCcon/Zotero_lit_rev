@@ -3,6 +3,21 @@
 Die Umsetzung folgt den vier Ausbaustufen aus [KONZEPT.md](KONZEPT.md) (Kap. 19).
 Ziel jeder Stufe ist ein installierbares, benutzbares Plugin – nicht nur Code.
 
+**Dokumente:** [KONZEPT-GESAMT.md](KONZEPT-GESAMT.md) = vollständige Vision
+(41 Kapitel, 9 Module) · [KONZEPT.md](KONZEPT.md) = Phase-1-Fokus ·
+[PHASE1_PLAN.md](PHASE1_PLAN.md) = konkreter Detailplan des ersten Bauabschnitts.
+
+## Module (aus KONZEPT-GESAMT.md Kap. 40) → Phasen-Zuordnung
+- **Modul 1** Projekt & Forschungsdesign → Phase 1/2
+- **Modul 2** Recherche & Suche → Phase 1 (lokal) / 2 (semantisch)
+- **Modul 3** Screening → Phase 3
+- **Modul 4** Fundstellen & Annotationen → Phase 1/2
+- **Modul 5** Paraphrasen & Extraktion → Phase 1 (manuell) / 2–4 (KI)
+- **Modul 6** Qualität & Evidenz → Phase 4
+- **Modul 7** Synthese & Forschungslücken → Phase 4
+- **Modul 8** Reporting → Phase 1 (CSV/JSON) / 3 (PRISMA, Evidenztabelle)
+- **Modul 9** KI- & API-Verwaltung → Phase 2
+
 ## Phase 1 – MVP (aktueller Fokus)
 
 Entspricht den Akzeptanzkriterien in KONZEPT.md Kap. 20.
