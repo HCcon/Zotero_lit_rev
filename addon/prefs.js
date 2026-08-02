@@ -1,4 +1,4 @@
-// Default preferences for zotero-plugin.
-// Access at runtime via Zotero.Prefs.get("extensions.zotero-plugin.<key>", true).
-pref("extensions.zotero-plugin.enabled", true);
-pref("extensions.zotero-plugin.exampleSetting", "default value");
+/* eslint-disable no-undef */
+// Default preferences. Read at runtime via
+// Zotero.Prefs.get("extensions.zotero-lit-rev.<key>", true).
+pref("extensions.zotero-lit-rev.enabled", true);

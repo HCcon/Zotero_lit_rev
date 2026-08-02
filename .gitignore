@@ -1,6 +1,14 @@
+# Dependencies
+node_modules/
+
 # Build output
 build/
+.scaffold/
 *.xpi
+
+# Env / local config
+.env
+.env.local
 
 # macOS
 .DS_Store
@@ -8,6 +16,3 @@ build/
 # Editor
 .vscode/
 .idea/
-
-# Node (falls später ein Build-Toolchain hinzukommt)
-node_modules/

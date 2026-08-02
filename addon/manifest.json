@@ -1,18 +1,14 @@
 {
   "manifest_version": 2,
   "name": "__addonName__",
-  "version": "0.0.1",
-  "description": "A Zotero 7 plugin.",
+  "version": "__buildVersion__",
+  "description": "Zotero 7 plugin for AI-assisted systematic literature review.",
   "author": "Christian Horres",
-  "homepage_url": "https://github.com/HCcon/zotero-plugin",
-  "icons": {
-    "48": "content/icons/icon48.png",
-    "96": "content/icons/icon96.png"
-  },
+  "homepage_url": "https://github.com/HCcon/Zotero_lit_rev",
   "applications": {
     "zotero": {
-      "id": "zotero-plugin@noveledge.local",
-      "update_url": "https://raw.githubusercontent.com/HCcon/zotero-plugin/main/update.json",
+      "id": "__addonID__",
+      "update_url": "https://github.com/HCcon/Zotero_lit_rev/releases/download/release/update.json",
       "strict_min_version": "6.999",
       "strict_max_version": "7.0.*"
     }

@@ -1,0 +1,34 @@
+{
+  "name": "zotero-lit-rev",
+  "version": "0.0.1",
+  "description": "Zotero 7 plugin for AI-assisted systematic literature review",
+  "config": {
+    "addonName": "Zotero Literature Review",
+    "addonID": "zotero-lit-rev@noveledge.local",
+    "addonRef": "zotero-lit-rev",
+    "addonInstance": "ZoteroLitRev",
+    "prefsPrefix": "extensions.zotero-lit-rev"
+  },
+  "type": "module",
+  "author": "Christian Horres",
+  "license": "AGPL-3.0-or-later",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/HCcon/Zotero_lit_rev.git"
+  },
+  "scripts": {
+    "start": "zotero-plugin serve",
+    "build": "tsc --noEmit && zotero-plugin build",
+    "release": "zotero-plugin release",
+    "lint": "tsc --noEmit"
+  },
+  "dependencies": {
+    "zotero-plugin-toolkit": "^5.2.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.1.2",
+    "typescript": "^7.0.2",
+    "zotero-plugin-scaffold": "^0.8.8",
+    "zotero-types": "^4.1.3"
+  }
+}
