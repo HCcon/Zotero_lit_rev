@@ -22,9 +22,9 @@ Ziel jeder Stufe ist ein installierbares, benutzbares Plugin – nicht nur Code.
 
 Entspricht den Akzeptanzkriterien in KONZEPT.md Kap. 20.
 
-- [ ] Datenspeicher für Plugin-Daten (Projekte, Konzepte, Fundstellen) – ohne
+- [x] Datenspeicher für Plugin-Daten (Projekte, Konzepte, Fundstellen) – ohne
       Eingriff in die Zotero-Datenbank
-- [ ] Rechercheprojekt anlegen / bearbeiten / löschen
+- [x] Rechercheprojekt anlegen / bearbeiten / löschen
 - [ ] Zotero-Collections einem Projekt zuordnen (inkl. Subcollections-Option)
 - [ ] Suchkonzepte mit Keywords, Synonymen und Kontextbeschreibung
 - [ ] Operatoren AND / OR / NOT (Parser)
