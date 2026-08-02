@@ -1,10 +1,12 @@
 import { loadData, saveData } from "../store";
+import { detectDuplicates, gatherItemMetas } from "../screening/screening";
 import {
   type Concept,
   type Finding,
   type PluginData,
   type Project,
   type ProjectSources,
+  type ScreeningRecord,
 } from "../types";
 
 /**
@@ -195,5 +197,67 @@ export class ProjectManager {
     }
     Object.assign(finding, patch);
     await saveData(this.data);
+  }
+
+  // --- Phase 3: Screening --------------------------------------------------
+
+  /** Builds/refreshes screening records from the project's collections,
+   *  preserving existing decisions. Returns the number of records. */
+  async syncScreening(projectId: string): Promise<number> {
+    await this.ensureLoaded();
+    const project = this.data.projects.find((p) => p.projectId === projectId);
+    if (!project) return 0;
+
+    const metas = gatherItemMetas(project);
+    const existing = new Map(
+      (project.screening ?? []).map((r) => [r.itemKey, r]),
+    );
+    project.screening = metas.map((m) => {
+      const prev = existing.get(m.itemKey);
+      return {
+        itemKey: m.itemKey,
+        title: m.title,
+        creator: m.creator,
+        year: m.year,
+        doi: m.doi,
+        decision: prev?.decision ?? "undecided",
+        stage: prev?.stage ?? "title-abstract",
+        exclusionReason: prev?.exclusionReason,
+        note: prev?.note,
+        isDuplicate: prev?.isDuplicate,
+        duplicateOf: prev?.duplicateOf,
+        updatedAt: prev?.updatedAt,
+      } as ScreeningRecord;
+    });
+    await saveData(this.data);
+    return project.screening.length;
+  }
+
+  async listScreening(projectId: string): Promise<ScreeningRecord[]> {
+    const project = await this.get(projectId);
+    return project?.screening ?? [];
+  }
+
+  async updateScreening(
+    projectId: string,
+    itemKey: string,
+    patch: Partial<ScreeningRecord>,
+  ): Promise<void> {
+    await this.ensureLoaded();
+    const project = this.data.projects.find((p) => p.projectId === projectId);
+    const rec = project?.screening?.find((r) => r.itemKey === itemKey);
+    if (!rec) return;
+    Object.assign(rec, patch, { updatedAt: new Date().toISOString() });
+    await saveData(this.data);
+  }
+
+  /** Runs duplicate detection over the screening records. Returns count. */
+  async runDuplicateDetection(projectId: string): Promise<number> {
+    await this.ensureLoaded();
+    const project = this.data.projects.find((p) => p.projectId === projectId);
+    if (!project?.screening) return 0;
+    const count = detectDuplicates(project.screening);
+    await saveData(this.data);
+    return count;
   }
 }

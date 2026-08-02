@@ -8,6 +8,7 @@ import {
 import { openCollectionSelector } from "../collections/collectionUI";
 import { openConceptManager } from "../concepts/conceptUI";
 import { openResults } from "../results/resultsUI";
+import { openScreening } from "../screening/screeningUI";
 import { openAISettings } from "../ai/settingsUI";
 import { type Project } from "../types";
 
@@ -279,6 +280,14 @@ export async function openProjectManager(pm: ProjectManager): Promise<void> {
         const id = String(data.selected ?? "");
         if (!id) return;
         await openResults(pm, id);
+      },
+    })
+    .addButton("Screening…", "screening", {
+      noClose: true,
+      callback: async () => {
+        const id = String(data.selected ?? "");
+        if (!id) return;
+        await openScreening(pm, id);
       },
     })
     .addButton("Löschen", "delete", {

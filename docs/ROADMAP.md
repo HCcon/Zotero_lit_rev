@@ -52,13 +52,16 @@ Entspricht den Akzeptanzkriterien in KONZEPT.md Kap. 20.
 - [ ] Automatische Annotationsvorschläge (mit Vorschau)
 - [ ] Versionierung der Suchprofile
 
-## Phase 3 – Systematisches Review
-- [ ] Titel-/Abstract- und Volltext-Screening
-- [ ] Ausschlussgründe, Freitextbegründung
-- [ ] Dublettenprüfung (DOI/ISBN/Titel/Hash)
-- [ ] PRISMA-Zähler + Datengrundlage für Flussdiagramm
-- [ ] Evidenztabelle (CSV/XLSX/JSON/Markdown/HTML)
-- [ ] Review-Protokoll, Freigabestatus
+## Phase 3 – Systematisches Review (in Arbeit)
+- [x] Screening je Eintrag: einschließen / ausschließen / vielleicht / Hintergrund
+- [x] Standardisierte Ausschlussgründe + Freitextbegründung
+- [x] Dublettenprüfung (DOI + Titel/Jahr; ISBN/Datei-Hash später)
+- [x] PRISMA-Zähler (Datengrundlage für Flussdiagramm)
+- [x] Evidenztabelle-Export (CSV; XLSX/HTML später)
+- [x] PRISMA-Bericht-Export (Markdown)
+- [ ] Explizite Trennung Titel-/Abstract- vs. Volltext-Stufe
+- [ ] Evidenztabelle als XLSX/HTML
+- [ ] Review-Protokoll mit Versionierung, Freigabestatus, Mehrbenutzer
 
 ## Phase 4 – Wissenschaftliche Inhaltsanalyse
 - [ ] Extraktion von Methoden/Ergebnissen/Variablen

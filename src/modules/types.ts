@@ -107,12 +107,48 @@ export interface Project {
   concepts?: Concept[];
   /** Findings from the last analysis run. */
   findings?: Finding[];
+  /** Per-item screening records (Phase 3). */
+  screening?: ScreeningRecord[];
   /** ISO datetime of the last analysis run. */
   lastRun?: string;
   /** ISO date (YYYY-MM-DD). */
   createdAt: string;
   /** Bumped on every edit. */
   version: number;
+}
+
+/** Screening stage (Konzept Kap. 11). */
+export type ScreeningStage =
+  | "identification"
+  | "title-abstract"
+  | "fulltext";
+
+/** Screening decision for an item. */
+export type ScreeningDecision =
+  | "undecided"
+  | "included"
+  | "excluded"
+  | "maybe"
+  | "background";
+
+/** Per-item screening record (Konzept Kap. 8/11). */
+export interface ScreeningRecord {
+  itemKey: string;
+  title: string;
+  creator: string;
+  year: string;
+  doi: string;
+  decision: ScreeningDecision;
+  stage: ScreeningStage;
+  /** Id from EXCLUSION_REASONS, when excluded. */
+  exclusionReason?: string;
+  /** Free-text justification. */
+  note?: string;
+  /** Marked as a probable duplicate. */
+  isDuplicate?: boolean;
+  /** itemKey of the record this duplicates. */
+  duplicateOf?: string;
+  updatedAt?: string;
 }
 
 /** Root object persisted to disk. */
