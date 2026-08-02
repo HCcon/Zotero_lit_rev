@@ -25,8 +25,8 @@ Entspricht den Akzeptanzkriterien in KONZEPT.md Kap. 20.
 - [x] Datenspeicher für Plugin-Daten (Projekte, Konzepte, Fundstellen) – ohne
       Eingriff in die Zotero-Datenbank
 - [x] Rechercheprojekt anlegen / bearbeiten / löschen
-- [ ] Zotero-Collections einem Projekt zuordnen (inkl. Subcollections-Option)
-- [ ] Suchkonzepte mit Keywords, Synonymen und Kontextbeschreibung
+- [x] Zotero-Collections einem Projekt zuordnen (inkl. Subcollections-Option)
+- [x] Suchkonzepte mit Keywords, Synonymen und Kontextbeschreibung
 - [ ] Operatoren AND / OR / NOT (Parser)
 - [ ] Volltextsuche in vorhandenen PDF-Anhängen der gewählten Collections
 - [ ] Trefferliste, nach einfacher Relevanz sortiert
