@@ -1,4 +1,5 @@
 import { createHooks } from "./hooks";
+import { ProjectManager } from "./modules/projects/projectManager";
 
 /**
  * Central plugin object. Holds runtime state and the lifecycle hooks.
@@ -16,12 +17,16 @@ export class Addon {
 
   public hooks: ReturnType<typeof createHooks>;
 
+  /** Baustein 2 – Projektverwaltung. */
+  public projects: ProjectManager;
+
   constructor() {
     this.data = {
       alive: true,
       env: {},
       ui: { menuitemId: "zotero-lit-rev-tools-menuitem" },
     };
+    this.projects = new ProjectManager();
     this.hooks = createHooks(this);
   }
 }

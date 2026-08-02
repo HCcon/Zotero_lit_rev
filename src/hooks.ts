@@ -1,4 +1,5 @@
 import type { Addon } from "./addon";
+import { openProjectManager } from "./modules/projects/projectUI";
 
 const ADDON_NAME = "Zotero Literature Review";
 
@@ -29,12 +30,9 @@ export function createHooks(addon: Addon) {
     // `createXULElement` exists on Zotero/Firefox documents.
     const menuitem = (doc as any).createXULElement("menuitem");
     menuitem.id = addon.data.ui.menuitemId;
-    menuitem.setAttribute("label", ADDON_NAME);
+    menuitem.setAttribute("label", `${ADDON_NAME} — Projekte…`);
     menuitem.addEventListener("command", () => {
-      win.alert(
-        `${ADDON_NAME}\n\nDas Fundament steht. Die Recherche-Funktionen ` +
-          `folgen gemäß Phase-1-Plan.`,
-      );
+      void openProjectManager(addon.projects);
     });
     menu.appendChild(menuitem);
     log("Menu item added");
