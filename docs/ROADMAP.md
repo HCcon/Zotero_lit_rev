@@ -27,15 +27,19 @@ Entspricht den Akzeptanzkriterien in KONZEPT.md Kap. 20.
 - [x] Rechercheprojekt anlegen / bearbeiten / löschen
 - [x] Zotero-Collections einem Projekt zuordnen (inkl. Subcollections-Option)
 - [x] Suchkonzepte mit Keywords, Synonymen und Kontextbeschreibung
-- [ ] Operatoren AND / OR / NOT (Parser)
-- [ ] Volltextsuche in vorhandenen PDF-Anhängen der gewählten Collections
-- [ ] Trefferliste, nach einfacher Relevanz sortiert
-- [ ] Manuelle Prüfung einzelner Fundstellen
-- [ ] Übernahme einer Fundstelle als Zotero-Annotation
-- [ ] Einfache, gekennzeichnete Paraphrase als Annotation-Kommentar
-- [ ] Export der Treffer/Entscheidungen als CSV und JSON
-- [ ] Kurze Begründung, warum ein Treffer als relevant gilt
-- [ ] "Systematic Review"-Abschnitt im Item Pane (Zotero 7)
+- [x] Operatoren AND / OR / NOT (Keywords/Synonyme = OR, Ausschlussbegriffe = NOT)
+- [x] Volltextsuche in vorhandenen PDF-Anhängen der gewählten Collections
+- [x] Trefferliste, nach einfacher Relevanz sortiert
+- [x] Manuelle Prüfung einzelner Fundstellen
+- [x] Übernahme einer Fundstelle als Zotero-Notiz*
+- [x] Einfache, gekennzeichnete Paraphrase (in der Notiz)
+- [x] Export der Treffer/Entscheidungen als CSV und JSON
+- [x] Kurze Begründung, warum ein Treffer als relevant gilt
+- [x] "Systematic Review"-Abschnitt im Item Pane + Kontextmenü
+
+> *Phase 1 erzeugt eine strukturierte Kind-Notiz am Eintrag (nichtdestruktiv).
+> Präzise In-PDF-Markierungen mit Seitenposition folgen in Phase 2 über die
+> Zotero-Reader-API.
 
 ## Phase 2 – Kontextbezogene Analyse
 - [ ] Ausführliche Kontextbeschreibungen, positive/negative Beispiele
