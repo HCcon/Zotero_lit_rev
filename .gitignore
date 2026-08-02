@@ -1,0 +1,13 @@
+# Build output
+build/
+*.xpi
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
+.idea/
+
+# Node (falls später ein Build-Toolchain hinzukommt)
+node_modules/
