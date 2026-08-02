@@ -5,6 +5,7 @@ import {
   reviewTypeLabel,
   type ProjectInput,
 } from "./projectManager";
+import { openCollectionSelector } from "../collections/collectionUI";
 import { type Project } from "../types";
 
 /**
@@ -251,6 +252,14 @@ export async function openProjectManager(pm: ProjectManager): Promise<void> {
           await pm.update(id, input);
           reopen();
         }
+      },
+    })
+    .addButton("Sammlungen…", "sources", {
+      noClose: true,
+      callback: async () => {
+        const id = String(data.selected ?? "");
+        if (!id) return;
+        await openCollectionSelector(pm, id);
       },
     })
     .addButton("Löschen", "delete", {

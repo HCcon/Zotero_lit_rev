@@ -1,5 +1,5 @@
 import { loadData, saveData } from "../store";
-import { type PluginData, type Project } from "../types";
+import { type PluginData, type Project, type ProjectSources } from "../types";
 
 /**
  * Baustein 2 (Logik) – Projektverwaltung.
@@ -79,6 +79,18 @@ export class ProjectManager {
   async remove(id: string): Promise<void> {
     await this.ensureLoaded();
     this.data.projects = this.data.projects.filter((p) => p.projectId !== id);
+    await saveData(this.data);
+  }
+
+  /** Baustein 3 – assign selected Zotero collections to a project. */
+  async setSources(id: string, sources: ProjectSources): Promise<void> {
+    await this.ensureLoaded();
+    const project = this.data.projects.find((p) => p.projectId === id);
+    if (!project) {
+      return;
+    }
+    project.sources = sources;
+    project.version = (project.version ?? 1) + 1;
     await saveData(this.data);
   }
 }
