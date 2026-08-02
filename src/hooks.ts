@@ -1,5 +1,10 @@
 import type { Addon } from "./addon";
 import { openProjectManager } from "./modules/projects/projectUI";
+import {
+  addItemContextMenu,
+  removeItemContextMenu,
+} from "./modules/ui/contextMenu";
+import { registerItemPaneSection } from "./modules/ui/itemPane";
 
 const ADDON_NAME = "Zotero Literature Review";
 
@@ -15,6 +20,10 @@ export function createHooks(addon: Addon) {
   function onStartup(env: { id?: string; version?: string; rootURI?: string }) {
     addon.data.env = env;
     log(`Starting up v${env.version ?? "?"}`);
+
+    // Item-Pane-Abschnitt einmalig registrieren (defensiv).
+    registerItemPaneSection(addon.projects);
+
     // Attach to any main windows that are already open.
     for (const win of Zotero.getMainWindows()) {
       onMainWindowLoad(win);
@@ -23,30 +32,40 @@ export function createHooks(addon: Addon) {
 
   function onMainWindowLoad(win: Window) {
     const doc = win.document;
+
+    // Tools-Menüeintrag
     const menu = doc.getElementById("menu_ToolsPopup");
-    if (!menu || doc.getElementById(addon.data.ui.menuitemId)) {
-      return;
+    if (menu && !doc.getElementById(addon.data.ui.menuitemId)) {
+      const menuitem = (doc as any).createXULElement("menuitem");
+      menuitem.id = addon.data.ui.menuitemId;
+      menuitem.setAttribute("label", `${ADDON_NAME} — Projekte…`);
+      menuitem.addEventListener("command", () => {
+        void openProjectManager(addon.projects);
+      });
+      menu.appendChild(menuitem);
     }
-    // `createXULElement` exists on Zotero/Firefox documents.
-    const menuitem = (doc as any).createXULElement("menuitem");
-    menuitem.id = addon.data.ui.menuitemId;
-    menuitem.setAttribute("label", `${ADDON_NAME} — Projekte…`);
-    menuitem.addEventListener("command", () => {
-      void openProjectManager(addon.projects);
-    });
-    menu.appendChild(menuitem);
-    log("Menu item added");
+
+    // Rechtsklick-Kontextmenü in der Eintragsliste
+    addItemContextMenu(win, addon.projects);
+
+    log("Window UI added");
   }
 
   function onMainWindowUnload(win: Window) {
-    const menuitem = win.document.getElementById(addon.data.ui.menuitemId);
-    menuitem?.remove();
+    win.document.getElementById(addon.data.ui.menuitemId)?.remove();
+    removeItemContextMenu(win);
   }
 
   function onShutdown() {
     log("Shutting down");
     for (const win of Zotero.getMainWindows()) {
       onMainWindowUnload(win);
+    }
+    const Z = Zotero as any;
+    try {
+      Z.ItemPaneManager?.unregisterSection?.("zotero-lit-rev-section");
+    } catch {
+      /* ignore */
     }
     addon.data.alive = false;
   }

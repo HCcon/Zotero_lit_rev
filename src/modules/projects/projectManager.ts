@@ -1,6 +1,7 @@
 import { loadData, saveData } from "../store";
 import {
   type Concept,
+  type Finding,
   type PluginData,
   type Project,
   type ProjectSources,
@@ -160,6 +161,39 @@ export class ProjectManager {
       (c) => c.conceptId !== conceptId,
     );
     project.version = (project.version ?? 1) + 1;
+    await saveData(this.data);
+  }
+
+  // --- Baustein 5/6: Fundstellen ----------------------------------------
+
+  async setFindings(projectId: string, findings: Finding[]): Promise<void> {
+    await this.ensureLoaded();
+    const project = this.data.projects.find((p) => p.projectId === projectId);
+    if (!project) {
+      return;
+    }
+    project.findings = findings;
+    project.lastRun = new Date().toISOString();
+    await saveData(this.data);
+  }
+
+  async listFindings(projectId: string): Promise<Finding[]> {
+    const project = await this.get(projectId);
+    return project?.findings ?? [];
+  }
+
+  async updateFinding(
+    projectId: string,
+    findingId: string,
+    patch: Partial<Finding>,
+  ): Promise<void> {
+    await this.ensureLoaded();
+    const project = this.data.projects.find((p) => p.projectId === projectId);
+    const finding = project?.findings?.find((f) => f.findingId === findingId);
+    if (!finding) {
+      return;
+    }
+    Object.assign(finding, patch);
     await saveData(this.data);
   }
 }

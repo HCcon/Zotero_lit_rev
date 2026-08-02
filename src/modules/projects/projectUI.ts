@@ -7,6 +7,7 @@ import {
 } from "./projectManager";
 import { openCollectionSelector } from "../collections/collectionUI";
 import { openConceptManager } from "../concepts/conceptUI";
+import { openResults } from "../results/resultsUI";
 import { type Project } from "../types";
 
 /**
@@ -269,6 +270,14 @@ export async function openProjectManager(pm: ProjectManager): Promise<void> {
         const id = String(data.selected ?? "");
         if (!id) return;
         await openConceptManager(pm, id);
+      },
+    })
+    .addButton("Analyse & Treffer…", "results", {
+      noClose: true,
+      callback: async () => {
+        const id = String(data.selected ?? "");
+        if (!id) return;
+        await openResults(pm, id);
       },
     })
     .addButton("Löschen", "delete", {

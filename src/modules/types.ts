@@ -33,6 +33,33 @@ export interface Concept {
   subQuestion: string;
 }
 
+/** A found relevant passage (Fundstelle). Phase-1 subset of KONZEPT.md Kap. 16.3. */
+export interface Finding {
+  findingId: string;
+  /** Parent (regular) item key. */
+  itemKey: string;
+  itemTitle: string;
+  itemCreator: string;
+  itemYear: string;
+  conceptId: string;
+  conceptName: string;
+  /** Where the match was found. */
+  location: "title" | "abstract" | "fulltext";
+  /** The matched passage with a bit of surrounding context. */
+  snippet: string;
+  /** Which of the concept's terms matched. */
+  matchedTerms: string[];
+  /** Simple, transparent relevance score. */
+  score: number;
+  /** Human-readable justification of the score. */
+  explanation: string;
+  reviewStatus: "suggested" | "accepted" | "rejected";
+  /** Manually written paraphrase (Baustein 8). */
+  paraphrase?: string;
+  /** Key of the Zotero note created on acceptance, if any. */
+  noteKey?: string;
+}
+
 /** A research project (Rechercheprojekt). */
 export interface Project {
   projectId: string;
@@ -54,6 +81,10 @@ export interface Project {
   sources?: ProjectSources;
   /** Search concepts belonging to this project. */
   concepts?: Concept[];
+  /** Findings from the last analysis run. */
+  findings?: Finding[];
+  /** ISO datetime of the last analysis run. */
+  lastRun?: string;
   /** ISO date (YYYY-MM-DD). */
   createdAt: string;
   /** Bumped on every edit. */
