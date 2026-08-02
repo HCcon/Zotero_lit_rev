@@ -8,6 +8,7 @@ import {
 import { openCollectionSelector } from "../collections/collectionUI";
 import { openConceptManager } from "../concepts/conceptUI";
 import { openResults } from "../results/resultsUI";
+import { openAISettings } from "../ai/settingsUI";
 import { type Project } from "../types";
 
 /**
@@ -291,6 +292,12 @@ export async function openProjectManager(pm: ProjectManager): Promise<void> {
           await pm.remove(id);
           reopen();
         }
+      },
+    })
+    .addButton("KI-Einstellungen…", "aicfg", {
+      noClose: true,
+      callback: async () => {
+        await openAISettings();
       },
     })
     .addButton("Schließen", "close")

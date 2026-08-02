@@ -54,8 +54,26 @@ export interface Finding {
   /** Human-readable justification of the score. */
   explanation: string;
   reviewStatus: "suggested" | "accepted" | "rejected";
-  /** Manually written paraphrase (Baustein 8). */
+  /** Manually written or AI-generated paraphrase (Baustein 8 / Phase 2). */
   paraphrase?: string;
+  /** Origin of the paraphrase. */
+  paraphraseSource?: "manual" | "ai";
+  /** Prüfstatus der Paraphrase (Kap. 10.3). */
+  paraphraseStatus?:
+    | "manual"
+    | "ai-unreviewed"
+    | "ai-reviewed"
+    | "approved";
+  /** Model that produced the AI paraphrase, for transparency. */
+  paraphraseModel?: string;
+  /** Phase 2: AI semantic relevance score (0–100). */
+  aiScore?: number;
+  /** Phase 2: AI screening recommendation. */
+  aiRecommendation?: "include" | "exclude" | "manual";
+  /** Phase 2: AI justification for the rating. */
+  aiExplanation?: string;
+  /** Model that produced the AI rating. */
+  aiModel?: string;
   /** Key of the Zotero note created on acceptance, if any. */
   noteKey?: string;
 }

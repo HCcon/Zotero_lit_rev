@@ -41,10 +41,13 @@ Entspricht den Akzeptanzkriterien in KONZEPT.md Kap. 20.
 > Präzise In-PDF-Markierungen mit Seitenposition folgen in Phase 2 über die
 > Zotero-Reader-API.
 
-## Phase 2 – Kontextbezogene Analyse
+## Phase 2 – Kontextbezogene Analyse & KI (in Arbeit)
+- [x] KI-/API-Anbindung, anbieter-konfigurierbar (Anthropic-Standard + OpenAI-kompatibel), Schlüssel getrennt gespeichert (Modul 9)
+- [x] Semantische KI-Relevanzbewertung je Fundstelle (Score + Empfehlung + Begründung), einzeln und im Stapel
+- [x] KI-Paraphrasen mit Kennzeichnung (KI-generiert/ungeprüft, Modellangabe)
+- [x] Versionierte Prompt-Vorlagen
 - [ ] Ausführliche Kontextbeschreibungen, positive/negative Beispiele
-- [ ] Semantische Suche (KI-Modus)
-- [ ] Konfigurierbarer Relevanzscore + Begründung
+- [ ] Konfigurierbare Score-Gewichtung (lokal + KI kombiniert)
 - [ ] Abschnittserkennung (Results, Discussion, …)
 - [ ] Automatische Annotationsvorschläge (mit Vorschau)
 - [ ] Versionierung der Suchprofile

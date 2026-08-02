@@ -29,9 +29,17 @@ function buildNoteHTML(
       : finding.location === "abstract"
         ? "Abstract"
         : "Volltext";
+  const paraLabel =
+    finding.paraphraseSource === "ai"
+      ? `Paraphrase (KI-generiert, ungeprüft${finding.paraphraseModel ? `, Modell: ${finding.paraphraseModel}` : ""}):`
+      : "Paraphrase (manuell):";
   const paraBlock = paraphrase.trim()
-    ? `<p><b>Paraphrase (manuell, ungeprüft):</b><br/>${esc(paraphrase)}</p>`
+    ? `<p><b>${esc(paraLabel)}</b><br/>${esc(paraphrase)}</p>`
     : `<p><i>Noch keine Paraphrase erfasst.</i></p>`;
+  const aiBlock =
+    typeof finding.aiScore === "number"
+      ? `<p><b>KI-Relevanz:</b> ${finding.aiScore}/100 (${esc(finding.aiRecommendation ?? "?")}) — ${esc(finding.aiExplanation ?? "")}</p>`
+      : "";
 
   return [
     `<h2>Zotero Literature Review — Fundstelle</h2>`,
@@ -39,6 +47,7 @@ function buildNoteHTML(
     `<p><b>Suchkonzept:</b> ${esc(finding.conceptName)}</p>`,
     `<p><b>Originalfundstelle (${locLabel}):</b><br/>„${esc(finding.snippet)}"</p>`,
     `<p><b>Relevanz:</b> Score ${finding.score} — ${esc(finding.explanation)}</p>`,
+    aiBlock,
     paraBlock,
     `<hr/>`,
     `<p><small>Automatisch vom Plugin vorgeschlagen · Paraphrase manuell erstellt und noch nicht wissenschaftlich geprüft · erstellt ${new Date()

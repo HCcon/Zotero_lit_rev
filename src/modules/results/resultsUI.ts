@@ -3,7 +3,10 @@ import { ProjectManager } from "../projects/projectManager";
 import { runAnalysis, countItems } from "../search/searchEngine";
 import { createFindingNote } from "../notes/noteWriter";
 import { exportFindings } from "../export/exporter";
-import { type Finding } from "../types";
+import { openAISettings } from "../ai/settingsUI";
+import { evaluateRelevance, generateParaphrase } from "../ai/aiService";
+import { isAIReady } from "../ai/aiConfig";
+import { type Concept, type Finding } from "../types";
 
 /**
  * Baustein 6 (Oberfläche) – Analyse starten und Trefferliste prüfen.
@@ -24,8 +27,9 @@ function statusMark(f: Finding): string {
 function findingLabel(f: Finding): string {
   const who = [f.itemCreator, f.itemYear].filter(Boolean).join(" ");
   const snippet =
-    f.snippet.length > 60 ? f.snippet.slice(0, 60) + "…" : f.snippet;
-  return `${statusMark(f)} [${f.score}] ${who} · ${f.conceptName} — ${snippet}`;
+    f.snippet.length > 55 ? f.snippet.slice(0, 55) + "…" : f.snippet;
+  const ai = typeof f.aiScore === "number" ? ` KI:${f.aiScore}` : "";
+  return `${statusMark(f)} [${f.score}${ai}] ${who} · ${f.conceptName} — ${snippet}`;
 }
 
 /** Runs the analysis with a progress window and stores the findings. */
@@ -69,6 +73,59 @@ async function doAnalysis(
   pw.startCloseTimer(3000);
 }
 
+function conceptOf(
+  concepts: Concept[] | undefined,
+  conceptId: string,
+): Concept | undefined {
+  return concepts?.find((c) => c.conceptId === conceptId);
+}
+
+/** Phase 2 – KI-Bewertung aller Fundstellen nacheinander, mit Fortschritt. */
+async function batchEvaluate(
+  pm: ProjectManager,
+  projectId: string,
+): Promise<void> {
+  const project = await pm.get(projectId);
+  if (!project) return;
+  const findings = await pm.listFindings(projectId);
+  if (findings.length === 0) return;
+
+  const pw = new ProgressWindowHelper("Zotero Literature Review — KI");
+  pw.createLine({ text: `KI-Bewertung 0/${findings.length} …`, progress: 0 });
+  pw.show();
+
+  let done = 0;
+  let errors = 0;
+  for (const f of findings) {
+    try {
+      const r = await evaluateRelevance(
+        project,
+        conceptOf(project.concepts, f.conceptId),
+        f,
+      );
+      await pm.updateFinding(projectId, f.findingId, {
+        aiScore: r.score,
+        aiRecommendation: r.recommendation,
+        aiExplanation: r.explanation,
+        aiModel: r.model,
+      });
+    } catch (e) {
+      errors++;
+      Zotero.debug(`[zotero-lit-rev] batch eval error: ${e}`);
+    }
+    done++;
+    pw.changeLine({
+      text: `KI-Bewertung ${done}/${findings.length} …`,
+      progress: Math.round((done / findings.length) * 100),
+    });
+  }
+  pw.changeLine({
+    text: `Fertig: ${done - errors} bewertet${errors ? `, ${errors} Fehler` : ""}.`,
+    progress: 100,
+  });
+  pw.startCloseTimer(4000);
+}
+
 /** Detail-/Paraphrase-Dialog für eine Fundstelle. */
 async function openFindingDetail(
   pm: ProjectManager,
@@ -76,8 +133,12 @@ async function openFindingDetail(
   finding: Finding,
 ): Promise<void> {
   const data: Record<string, any> = { paraphrase: finding.paraphrase ?? "" };
+  const aiInfo =
+    typeof finding.aiScore === "number"
+      ? `KI-Relevanz: ${finding.aiScore}/100 (${finding.aiRecommendation ?? "?"}) — ${finding.aiExplanation ?? ""}`
+      : "Noch keine KI-Bewertung.";
 
-  const dialog = new DialogHelper(5, 1);
+  const dialog = new DialogHelper(6, 1);
   dialog
     .addCell(0, 0, {
       tag: "h3",
@@ -115,7 +176,57 @@ async function openFindingDetail(
       attributes: { "data-bind": "paraphrase", "data-prop": "value" },
       styles: { width: "520px", height: "90px" },
     })
+    .addCell(5, 0, {
+      tag: "small",
+      namespace: "html",
+      id: "ai-info",
+      styles: { color: "gray", maxWidth: "520px" },
+      properties: { textContent: aiInfo },
+    })
     .addButton("Speichern", "save")
+    .addButton("KI-Bewertung", "airate", {
+      noClose: true,
+      callback: async () => {
+        const project = await pm.get(projectId);
+        if (!project) return;
+        try {
+          const r = await evaluateRelevance(
+            project,
+            conceptOf(project.concepts, finding.conceptId),
+            finding,
+          );
+          await pm.updateFinding(projectId, finding.findingId, {
+            aiScore: r.score,
+            aiRecommendation: r.recommendation,
+            aiExplanation: r.explanation,
+            aiModel: r.model,
+          });
+          const el = dialog.window.document.getElementById("ai-info");
+          if (el)
+            el.textContent = `KI-Relevanz: ${r.score}/100 (${r.recommendation}) — ${r.explanation}`;
+        } catch (e) {
+          mainWindow().alert(`KI-Bewertung fehlgeschlagen:\n${e}`);
+        }
+      },
+    })
+    .addButton("KI-Paraphrase", "aipara", {
+      noClose: true,
+      callback: async () => {
+        const project = await pm.get(projectId);
+        if (!project) return;
+        try {
+          const { text, model } = await generateParaphrase(project, finding);
+          const ta = dialog.window.document.querySelector(
+            'textarea[data-bind="paraphrase"]',
+          ) as HTMLTextAreaElement | null;
+          if (ta) ta.value = text;
+          data.paraphrase = text;
+          data.__aiParaphrase = { model };
+        } catch (e) {
+          mainWindow().alert(`KI-Paraphrase fehlgeschlagen:\n${e}`);
+        }
+      },
+    })
     .addButton("Abbrechen", "cancel")
     .setDialogData(data);
 
@@ -127,8 +238,12 @@ async function openFindingDetail(
 
   await (data as any).unloadLock?.promise;
   if (data._lastButtonId === "save") {
+    const ai = data.__aiParaphrase;
     await pm.updateFinding(projectId, finding.findingId, {
       paraphrase: String(data.paraphrase ?? "").trim(),
+      paraphraseSource: ai ? "ai" : "manual",
+      paraphraseStatus: ai ? "ai-unreviewed" : "manual",
+      paraphraseModel: ai ? ai.model : undefined,
     });
   }
 }
@@ -275,6 +390,30 @@ export async function openResults(
         if (!p) return;
         const path = await exportFindings(p, "json");
         if (path) mainWindow().alert(`JSON exportiert:\n${path}`);
+      },
+    })
+    .addButton("KI-Einstellungen…", "aicfg", {
+      noClose: true,
+      callback: async () => {
+        await openAISettings();
+      },
+    })
+    .addButton("KI: alle bewerten", "aiall", {
+      noClose: true,
+      callback: async () => {
+        if (!isAIReady()) {
+          mainWindow().alert(
+            "KI ist nicht konfiguriert. Bitte zuerst „KI-Einstellungen…\".",
+          );
+          return;
+        }
+        try {
+          dialog.window?.close();
+        } catch {
+          /* ignore */
+        }
+        await batchEvaluate(pm, projectId);
+        void openResults(pm, projectId);
       },
     })
     .addButton("Schließen", "close")

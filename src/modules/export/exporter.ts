@@ -26,7 +26,11 @@ const CSV_COLUMNS: { header: string; get: (f: Finding) => string }[] = [
   { header: "Getroffene Begriffe", get: (f) => f.matchedTerms.join("; ") },
   { header: "Fundstelle", get: (f) => f.snippet },
   { header: "Status", get: (f) => f.reviewStatus },
+  { header: "KI-Score", get: (f) => (f.aiScore != null ? String(f.aiScore) : "") },
+  { header: "KI-Empfehlung", get: (f) => f.aiRecommendation ?? "" },
+  { header: "KI-Begruendung", get: (f) => f.aiExplanation ?? "" },
   { header: "Paraphrase", get: (f) => f.paraphrase ?? "" },
+  { header: "Paraphrase-Quelle", get: (f) => f.paraphraseSource ?? "" },
   { header: "ItemKey", get: (f) => f.itemKey },
 ];
 
