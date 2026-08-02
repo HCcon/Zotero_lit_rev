@@ -1,5 +1,10 @@
 import { loadData, saveData } from "../store";
-import { type PluginData, type Project, type ProjectSources } from "../types";
+import {
+  type Concept,
+  type PluginData,
+  type Project,
+  type ProjectSources,
+} from "../types";
 
 /**
  * Baustein 2 (Logik) – Projektverwaltung.
@@ -22,7 +27,13 @@ export function reviewTypeLabel(id: string): string {
 }
 
 /** Fields the user can edit; the rest is managed automatically. */
-export type ProjectInput = Omit<Project, "projectId" | "createdAt" | "version">;
+export type ProjectInput = Omit<
+  Project,
+  "projectId" | "createdAt" | "version" | "sources" | "concepts"
+>;
+
+/** Concept fields the user can edit. */
+export type ConceptInput = Omit<Concept, "conceptId">;
 
 function newId(prefix: string): string {
   return `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`;
@@ -90,6 +101,64 @@ export class ProjectManager {
       return;
     }
     project.sources = sources;
+    project.version = (project.version ?? 1) + 1;
+    await saveData(this.data);
+  }
+
+  // --- Baustein 4: Suchkonzepte -----------------------------------------
+
+  async listConcepts(projectId: string): Promise<Concept[]> {
+    const project = await this.get(projectId);
+    return project?.concepts ?? [];
+  }
+
+  async getConcept(
+    projectId: string,
+    conceptId: string,
+  ): Promise<Concept | undefined> {
+    const project = await this.get(projectId);
+    return project?.concepts?.find((c) => c.conceptId === conceptId);
+  }
+
+  async addConcept(projectId: string, input: ConceptInput): Promise<void> {
+    await this.ensureLoaded();
+    const project = this.data.projects.find((p) => p.projectId === projectId);
+    if (!project) {
+      return;
+    }
+    if (!project.concepts) {
+      project.concepts = [];
+    }
+    project.concepts.push({ ...input, conceptId: newId("concept") });
+    project.version = (project.version ?? 1) + 1;
+    await saveData(this.data);
+  }
+
+  async updateConcept(
+    projectId: string,
+    conceptId: string,
+    input: ConceptInput,
+  ): Promise<void> {
+    await this.ensureLoaded();
+    const project = this.data.projects.find((p) => p.projectId === projectId);
+    const concept = project?.concepts?.find((c) => c.conceptId === conceptId);
+    if (!concept) {
+      return;
+    }
+    Object.assign(concept, input);
+    project!.version = (project!.version ?? 1) + 1;
+    await saveData(this.data);
+  }
+
+  async removeConcept(projectId: string, conceptId: string): Promise<void> {
+    await this.ensureLoaded();
+    const project = this.data.projects.find((p) => p.projectId === projectId);
+    if (!project?.concepts) {
+      return;
+    }
+    project.concepts = project.concepts.filter(
+      (c) => c.conceptId !== conceptId,
+    );
     project.version = (project.version ?? 1) + 1;
     await saveData(this.data);
   }

@@ -6,6 +6,7 @@ import {
   type ProjectInput,
 } from "./projectManager";
 import { openCollectionSelector } from "../collections/collectionUI";
+import { openConceptManager } from "../concepts/conceptUI";
 import { type Project } from "../types";
 
 /**
@@ -260,6 +261,14 @@ export async function openProjectManager(pm: ProjectManager): Promise<void> {
         const id = String(data.selected ?? "");
         if (!id) return;
         await openCollectionSelector(pm, id);
+      },
+    })
+    .addButton("Suchkonzepte…", "concepts", {
+      noClose: true,
+      callback: async () => {
+        const id = String(data.selected ?? "");
+        if (!id) return;
+        await openConceptManager(pm, id);
       },
     })
     .addButton("Löschen", "delete", {

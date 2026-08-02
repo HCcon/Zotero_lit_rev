@@ -16,6 +16,23 @@ export interface ProjectSources {
   onlyWithPDF: boolean;
 }
 
+/** A search concept (Suchkonzept). Phase-1 subset of KONZEPT.md Kap. 5.1. */
+export interface Concept {
+  conceptId: string;
+  /** Concept name. */
+  name: string;
+  /** Context description (positive meaning of the concept). */
+  description: string;
+  /** Main keywords. */
+  keywords: string[];
+  /** Synonyms / alternative spellings. */
+  synonyms: string[];
+  /** Terms that mark a passage as NOT relevant. */
+  exclusionTerms: string[];
+  /** Optional link to one of the project's sub-questions. */
+  subQuestion: string;
+}
+
 /** A research project (Rechercheprojekt). */
 export interface Project {
   projectId: string;
@@ -35,6 +52,8 @@ export interface Project {
   exclusionCriteria: string;
   /** Selected Zotero sources (collections). Optional until assigned. */
   sources?: ProjectSources;
+  /** Search concepts belonging to this project. */
+  concepts?: Concept[];
   /** ISO date (YYYY-MM-DD). */
   createdAt: string;
   /** Bumped on every edit. */
