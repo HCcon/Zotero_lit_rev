@@ -10,6 +10,9 @@ build/
 .env
 .env.local
 
+# Local dev Zotero profile/data (Testinstanz)
+.dev/
+
 # macOS
 .DS_Store
 

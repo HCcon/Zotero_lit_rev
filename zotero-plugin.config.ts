@@ -38,4 +38,9 @@ export default defineConfig({
     makeManifest: { enable: false },
     makeUpdateJson: { enable: false },
   },
+  server: {
+    // Legt das Test-Profil an, falls es noch nicht existiert.
+    createProfileIfMissing: true,
+    asProxy: true,
+  },
 });
