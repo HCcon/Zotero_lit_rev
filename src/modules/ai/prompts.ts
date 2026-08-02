@@ -8,12 +8,17 @@ export const PROMPT_VERSION = "p2-2026-08-02";
 
 function conceptContext(concept: Concept | undefined): string {
   if (!concept) return "";
+  const pos = concept.positiveExamples ?? [];
+  const neg = concept.negativeExamples ?? [];
   const parts = [
     concept.description && `Beschreibung: ${concept.description}`,
     concept.keywords.length && `Keywords: ${concept.keywords.join(", ")}`,
     concept.synonyms.length && `Synonyme: ${concept.synonyms.join(", ")}`,
     concept.exclusionTerms.length &&
       `Ausschlussbegriffe: ${concept.exclusionTerms.join(", ")}`,
+    pos.length && `Beispiele für RELEVANTE Stellen:\n- ${pos.join("\n- ")}`,
+    neg.length &&
+      `Beispiele für NICHT relevante Stellen:\n- ${neg.join("\n- ")}`,
   ].filter(Boolean);
   return parts.join("\n");
 }

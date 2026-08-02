@@ -29,6 +29,10 @@ export interface Concept {
   synonyms: string[];
   /** Terms that mark a passage as NOT relevant. */
   exclusionTerms: string[];
+  /** Example passages that ARE relevant (guides the AI). */
+  positiveExamples: string[];
+  /** Example passages that are NOT relevant (guides the AI). */
+  negativeExamples: string[];
   /** Optional link to one of the project's sub-questions. */
   subQuestion: string;
 }
@@ -45,6 +49,8 @@ export interface Finding {
   conceptName: string;
   /** Where the match was found. */
   location: "title" | "abstract" | "fulltext";
+  /** Detected scientific section (e.g. Results, Discussion), if any. */
+  section?: string;
   /** The matched passage with a bit of surrounding context. */
   snippet: string;
   /** Which of the concept's terms matched. */

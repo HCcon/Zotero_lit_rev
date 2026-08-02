@@ -109,6 +109,33 @@ function conceptTerms(concept: Concept): string[] {
     .filter(Boolean);
 }
 
+/** Typical scientific section headings (Kap. 6.3). */
+const SECTION_HEADINGS: { name: string; re: RegExp }[] = [
+  { name: "Abstract", re: /^abstract\b/i },
+  { name: "Introduction", re: /^introduction\b/i },
+  { name: "Background", re: /^(theoretical background|background|literature review)\b/i },
+  { name: "Methods", re: /^(methodology|methods|materials and methods|study design)\b/i },
+  { name: "Results", re: /^(results|findings)\b/i },
+  { name: "Discussion", re: /^discussion\b/i },
+  { name: "Limitations", re: /^limitations\b/i },
+  { name: "Conclusion", re: /^(conclusion|conclusions|concluding remarks)\b/i },
+  { name: "Future Research", re: /^future (research|work|directions)\b/i },
+];
+
+/** Best-effort detection of the section a match sits in (scans backwards). */
+function detectSection(text: string, index: number): string | undefined {
+  const before = text.slice(Math.max(0, index - 6000), index);
+  const lines = before.split(/\n+/);
+  for (let i = lines.length - 1; i >= 0; i--) {
+    const line = lines[i].trim();
+    if (!line || line.length > 40) continue;
+    for (const s of SECTION_HEADINGS) {
+      if (s.re.test(line)) return s.name;
+    }
+  }
+  return undefined;
+}
+
 function findFirstMatch(
   haystackLower: string,
   terms: string[],
@@ -134,6 +161,7 @@ function makeSnippet(text: string, index: number, term: string): string {
 
 interface ConceptMatch {
   location: "title" | "abstract" | "fulltext";
+  section?: string;
   snippet: string;
   matchedTerms: string[];
   occurrences: number;
@@ -161,6 +189,7 @@ function matchConcept(
   let occurrences = 0;
   let bestLocation: "title" | "abstract" | "fulltext" | null = null;
   let bestSnippet = "";
+  let bestSection: string | undefined;
 
   for (const field of fields) {
     if (!field.text) continue;
@@ -184,6 +213,10 @@ function matchConcept(
           ) {
             bestLocation = field.name;
             bestSnippet = makeSnippet(field.text, idx, term);
+            bestSection =
+              field.name === "fulltext"
+                ? detectSection(field.text, idx)
+                : undefined;
           }
         }
         from = idx + t.length;
@@ -197,28 +230,33 @@ function matchConcept(
   }
   return {
     location: bestLocation,
+    section: bestSection,
     snippet: bestSnippet,
     matchedTerms: [...matchedTerms],
     occurrences,
   };
 }
 
+const STRONG_SECTIONS = ["Results", "Discussion", "Conclusion", "Limitations"];
+
 function scoreMatch(m: ConceptMatch): { score: number; explanation: string } {
   const locBonus =
     m.location === "title" ? 3 : m.location === "abstract" ? 2 : 1;
   const termBonus = m.matchedTerms.length * 2;
   const occBonus = Math.min(m.occurrences, 10);
-  const score = locBonus + termBonus + occBonus;
+  const sectionBonus = m.section && STRONG_SECTIONS.includes(m.section) ? 2 : 0;
+  const score = locBonus + termBonus + occBonus + sectionBonus;
   const locLabel =
     m.location === "title"
       ? "Titel"
       : m.location === "abstract"
         ? "Abstract"
         : "Volltext";
+  const sectionNote = m.section ? ` im Abschnitt „${m.section}"` : "";
   const explanation =
     `${m.matchedTerms.length} Begriff(e) getroffen ` +
     `(${m.matchedTerms.join(", ")}); ${m.occurrences} Fundstelle(n); ` +
-    `bester Treffer im ${locLabel}.`;
+    `bester Treffer im ${locLabel}${sectionNote}.`;
   return { score, explanation };
 }
 
@@ -271,6 +309,7 @@ export async function runAnalysis(
         conceptId: concept.conceptId,
         conceptName: concept.name,
         location: m.location,
+        section: m.section,
         snippet: m.snippet,
         matchedTerms: m.matchedTerms,
         score,

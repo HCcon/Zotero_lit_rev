@@ -46,9 +46,9 @@ Entspricht den Akzeptanzkriterien in KONZEPT.md Kap. 20.
 - [x] Semantische KI-Relevanzbewertung je Fundstelle (Score + Empfehlung + Begründung), einzeln und im Stapel
 - [x] KI-Paraphrasen mit Kennzeichnung (KI-generiert/ungeprüft, Modellangabe)
 - [x] Versionierte Prompt-Vorlagen
-- [ ] Ausführliche Kontextbeschreibungen, positive/negative Beispiele
+- [x] Positive/negative Beispiele je Suchkonzept (fließen in die KI-Bewertung)
+- [x] Abschnittserkennung (Results, Discussion, …) inkl. Score-Bonus
 - [ ] Konfigurierbare Score-Gewichtung (lokal + KI kombiniert)
-- [ ] Abschnittserkennung (Results, Discussion, …)
 - [ ] Automatische Annotationsvorschläge (mit Vorschau)
 - [ ] Versionierung der Suchprofile
 

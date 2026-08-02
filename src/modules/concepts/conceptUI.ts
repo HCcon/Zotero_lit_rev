@@ -30,6 +30,8 @@ async function openConceptForm(
     keywords: (existing?.keywords ?? []).join("\n"),
     synonyms: (existing?.synonyms ?? []).join("\n"),
     exclusionTerms: (existing?.exclusionTerms ?? []).join("\n"),
+    positiveExamples: (existing?.positiveExamples ?? []).join("\n"),
+    negativeExamples: (existing?.negativeExamples ?? []).join("\n"),
     subQuestion: existing?.subQuestion ?? "",
   };
 
@@ -51,7 +53,7 @@ async function openConceptForm(
     })),
   ];
 
-  const dialog = new DialogHelper(6, 2);
+  const dialog = new DialogHelper(8, 2);
   dialog
     .addCell(0, 0, {
       tag: "label",
@@ -116,10 +118,34 @@ async function openConceptForm(
     .addCell(5, 0, {
       tag: "label",
       namespace: "html",
-      properties: { textContent: "Zugeordnete Teilfrage" },
+      properties: { textContent: "Relevante Beispiele (eines pro Zeile)" },
       attributes: labelStyle,
     })
     .addCell(5, 1, {
+      tag: "textarea",
+      namespace: "html",
+      attributes: { "data-bind": "positiveExamples", "data-prop": "value" },
+      styles: areaStyle,
+    })
+    .addCell(6, 0, {
+      tag: "label",
+      namespace: "html",
+      properties: { textContent: "Nicht relevante Beispiele (eines pro Zeile)" },
+      attributes: labelStyle,
+    })
+    .addCell(6, 1, {
+      tag: "textarea",
+      namespace: "html",
+      attributes: { "data-bind": "negativeExamples", "data-prop": "value" },
+      styles: areaStyle,
+    })
+    .addCell(7, 0, {
+      tag: "label",
+      namespace: "html",
+      properties: { textContent: "Zugeordnete Teilfrage" },
+      attributes: labelStyle,
+    })
+    .addCell(7, 1, {
       tag: "select",
       namespace: "html",
       attributes: { "data-bind": "subQuestion", "data-prop": "value" },
@@ -153,6 +179,8 @@ async function openConceptForm(
     keywords: splitLines(data.keywords),
     synonyms: splitLines(data.synonyms),
     exclusionTerms: splitLines(data.exclusionTerms),
+    positiveExamples: splitLines(data.positiveExamples),
+    negativeExamples: splitLines(data.negativeExamples),
     subQuestion: String(data.subQuestion ?? "").trim(),
   };
 }

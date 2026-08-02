@@ -21,6 +21,7 @@ const CSV_COLUMNS: { header: string; get: (f: Finding) => string }[] = [
   { header: "Titel", get: (f) => f.itemTitle },
   { header: "Suchkonzept", get: (f) => f.conceptName },
   { header: "Fundort", get: (f) => f.location },
+  { header: "Abschnitt", get: (f) => f.section ?? "" },
   { header: "Score", get: (f) => String(f.score) },
   { header: "Begruendung", get: (f) => f.explanation },
   { header: "Getroffene Begriffe", get: (f) => f.matchedTerms.join("; ") },
