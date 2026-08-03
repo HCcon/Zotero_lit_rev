@@ -68,19 +68,23 @@ export function openProgressWindow(heading: string): ProgressHandle {
     resizable: false,
   });
 
-  const ready: Promise<void> =
-    (dialog.dialogData as any).loadLock?.promise ?? Promise.resolve();
-
   return {
     async set(done, total, text) {
-      await ready;
-      const doc = dialog.window?.document;
-      if (!doc) return;
-      const bar = doc.getElementById("lr-progress-bar") as any;
-      const label = doc.getElementById("lr-progress-text") as HTMLElement | null;
-      const pct = total ? Math.round((done / total) * 100) : 0;
-      if (bar) bar.value = pct;
-      if (label) label.textContent = `${text}  (${pct} %)`;
+      // Do not await any load-lock (it can stall); just update if the window
+      // is already there. Early updates before load are skipped harmlessly.
+      try {
+        const doc = dialog.window?.document;
+        if (!doc) return;
+        const bar = doc.getElementById("lr-progress-bar") as any;
+        const label = doc.getElementById(
+          "lr-progress-text",
+        ) as HTMLElement | null;
+        const pct = total ? Math.round((done / total) * 100) : 0;
+        if (bar) bar.value = pct;
+        if (label) label.textContent = `${text}  (${pct} %)`;
+      } catch {
+        /* ignore */
+      }
     },
     close() {
       try {

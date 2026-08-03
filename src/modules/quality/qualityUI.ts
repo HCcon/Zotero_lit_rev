@@ -1,6 +1,5 @@
 import { DialogHelper } from "zotero-plugin-toolkit";
-import { openProgressWindow } from "../ui/notify";
-import { notify } from "../ui/notify";
+import { confirmDialog, notify, openProgressWindow } from "../ui/notify";
 import { ProjectManager } from "../projects/projectManager";
 import {
   QUALITY_CRITERIA,
@@ -150,6 +149,14 @@ async function batchQuality(pm: ProjectManager, project: Project): Promise<void>
     notify(
       "Keine eingeschlossenen Einträge. Bitte zuerst im Screening einschließen.",
     );
+    return;
+  }
+  if (
+    !confirmDialog(
+      `${items.length} Studie(n) werden per KI bewertet.\n\n` +
+        "Das kann einige Minuten dauern und verursacht API-Kosten. Fortfahren?",
+    )
+  ) {
     return;
   }
   const prog = openProgressWindow("Qualitätsbewertung der Studien");

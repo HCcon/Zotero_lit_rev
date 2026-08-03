@@ -1,6 +1,5 @@
 import { DialogHelper } from "zotero-plugin-toolkit";
-import { openProgressWindow } from "../ui/notify";
-import { confirmDialog, notify } from "../ui/notify";
+import { confirmDialog, notify, openProgressWindow } from "../ui/notify";
 import { ProjectManager } from "../projects/projectManager";
 import { runAnalysis, countItems } from "../search/searchEngine";
 import { createFindingNote } from "../notes/noteWriter";
@@ -135,6 +134,16 @@ async function batchEvaluate(
   if (!project) return;
   const findings = await pm.listFindings(projectId);
   if (findings.length === 0) return;
+  if (
+    !confirmDialog(
+      `${findings.length} Treffer werden einzeln per KI bewertet.\n\n` +
+        "Das kann bei vielen Treffern einige Minuten dauern und verursacht " +
+        "API-Kosten. Für viele Treffer ein schnelles Modell wählen " +
+        "(gpt-4o-mini, claude-haiku-4-5).\n\nFortfahren?",
+    )
+  ) {
+    return;
+  }
 
   const prog = openProgressWindow("KI-Bewertung der Treffer");
 
@@ -172,6 +181,15 @@ async function batchEvaluate(
 async function batchCode(pm: ProjectManager, projectId: string): Promise<void> {
   const findings = await pm.listFindings(projectId);
   if (findings.length === 0) return;
+  if (
+    !confirmDialog(
+      `${findings.length} Treffer werden einzeln per KI kodiert.\n\n` +
+        "Das kann einige Minuten dauern und verursacht API-Kosten. " +
+        "Fortfahren?",
+    )
+  ) {
+    return;
+  }
 
   const prog = openProgressWindow("KI-Kodierung der Treffer");
 

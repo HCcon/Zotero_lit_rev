@@ -14,13 +14,43 @@ function log(msg: string) {
 
 export class AIError extends Error {}
 
+/** fetch with an abort timeout so a hung request fails instead of blocking. */
+async function fetchWithTimeout(
+  url: string,
+  options: any,
+  timeoutMs = 120000,
+): Promise<Response> {
+  const AC = (globalThis as any).AbortController;
+  const setT = (globalThis as any).setTimeout;
+  const clearT = (globalThis as any).clearTimeout;
+  if (!AC || !setT) {
+    return fetch(url, options);
+  }
+  const ctrl = new AC();
+  const timer = setT(() => ctrl.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...options, signal: ctrl.signal });
+  } catch (e: any) {
+    if (e?.name === "AbortError") {
+      throw new AIError(
+        `Zeitlimit (${Math.round(timeoutMs / 1000)} s) überschritten. Das ` +
+          "Modell hat nicht rechtzeitig geantwortet – ggf. ein schnelleres " +
+          "Modell wählen (z. B. gpt-4o-mini, claude-haiku-4-5).",
+      );
+    }
+    throw e;
+  } finally {
+    clearT?.(timer);
+  }
+}
+
 async function callAnthropic(
   cfg: AIConfig,
   system: string,
   user: string,
   maxTokens: number,
 ): Promise<string> {
-  const res = await fetch(`${cfg.baseURL}/v1/messages`, {
+  const res = await fetchWithTimeout(`${cfg.baseURL}/v1/messages`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
@@ -82,7 +112,7 @@ async function openAIRequest(
   } else {
     body.max_tokens = maxTokens;
   }
-  const res = await fetch(`${base}/v1/chat/completions`, {
+  const res = await fetchWithTimeout(`${base}/v1/chat/completions`, {
     method: "POST",
     headers: {
       "content-type": "application/json",

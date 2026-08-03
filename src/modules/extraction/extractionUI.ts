@@ -1,5 +1,5 @@
 import { DialogHelper } from "zotero-plugin-toolkit";
-import { notify, openProgressWindow } from "../ui/notify";
+import { confirmDialog, notify, openProgressWindow } from "../ui/notify";
 import { ProjectManager } from "../projects/projectManager";
 import { EXTRACTION_FIELDS, NOT_REPORTED } from "./extraction";
 import { extractStudy } from "../ai/aiService";
@@ -133,6 +133,14 @@ async function batchExtract(
     notify(
       "Keine eingeschlossenen Einträge. Bitte zuerst im Screening Einträge einschließen.",
     );
+    return;
+  }
+  if (
+    !confirmDialog(
+      `${items.length} Studie(n) werden per KI extrahiert.\n\n` +
+        "Das kann einige Minuten dauern und verursacht API-Kosten. Fortfahren?",
+    )
+  ) {
     return;
   }
   const prog = openProgressWindow("Extraktion der Studien");
