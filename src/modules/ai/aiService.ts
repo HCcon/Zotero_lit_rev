@@ -5,12 +5,16 @@ import {
   PARAPHRASE_SYSTEM,
   QUALITY_SYSTEM,
   RELEVANCE_SYSTEM,
+  SYNTHESIS_SYSTEM,
   buildCodingPrompt,
   buildExtractionPrompt,
   buildParaphrasePrompt,
   buildQualityPrompt,
   buildRelevancePrompt,
+  buildSynthesisPrompt,
 } from "./prompts";
+import { buildStudyDigest } from "../synthesis/synthesis";
+import { type Synthesis } from "../types";
 import { getAIConfig } from "./aiConfig";
 import { CODES } from "../coding/codes";
 import {
@@ -84,6 +88,30 @@ export async function generateParaphrase(
   const prompt = buildParaphrasePrompt(project, finding);
   const text = await aiComplete(PARAPHRASE_SYSTEM, prompt, 512);
   return { text: text.trim(), model: getAIConfig().model };
+}
+
+export async function synthesize(project: Project): Promise<Synthesis> {
+  const { digest, count } = buildStudyDigest(project);
+  if (count === 0) {
+    throw new Error(
+      "Keine eingeschlossenen Studien. Bitte zuerst im Screening einschließen.",
+    );
+  }
+  const raw = await aiComplete(
+    SYNTHESIS_SYSTEM,
+    buildSynthesisPrompt(project, digest),
+    2000,
+  );
+  const obj = extractJSON(raw);
+  return {
+    generatedAt: new Date().toISOString(),
+    model: getAIConfig().model,
+    studyCount: count,
+    keyFindings: String(obj.keyFindings ?? "").trim(),
+    contradictions: String(obj.contradictions ?? "").trim(),
+    researchGaps: String(obj.researchGaps ?? "").trim(),
+    newQuestions: String(obj.newQuestions ?? "").trim(),
+  };
 }
 
 export async function assessQuality(

@@ -133,6 +133,30 @@ export function buildQualityPrompt(project: Project, text: string): string {
   ].join("\n");
 }
 
+export const SYNTHESIS_SYSTEM =
+  "Du bist ein wissenschaftlicher Assistent für die Evidenzsynthese eines " +
+  "systematischen Literaturreviews. Vergleiche die Studien, stütze dich nur " +
+  "auf die gegebenen Angaben und erfinde nichts. Neue Forschungsfragen sind " +
+  "als KI-generierte Hypothesen zu kennzeichnen. Antworte ausschließlich im " +
+  "geforderten JSON-Format.";
+
+export function buildSynthesisPrompt(project: Project, digest: string): string {
+  return [
+    `Forschungsfrage: ${project.researchQuestion || "(nicht angegeben)"}`,
+    "",
+    "Eingeschlossene Studien (Digest):",
+    digest,
+    "",
+    "Erstelle eine Evidenzsynthese über alle Studien hinweg. Antworte NUR mit " +
+      "einem JSON-Objekt der Form:",
+    '{"keyFindings": "<zentrale, studienübergreifende Erkenntnisse als ' +
+      'Aufzählung>", "contradictions": "<widersprüchliche Befunde zwischen ' +
+      'Studien>", "researchGaps": "<identifizierte Forschungslücken>", ' +
+      '"newQuestions": "<mögliche neue Forschungsfragen, als KI-Hypothesen ' +
+      'gekennzeichnet>"}',
+  ].join("\n");
+}
+
 export const PARAPHRASE_SYSTEM =
   "Du bist ein wissenschaftlicher Assistent. Du erstellst eine Paraphrase, " +
   "die den Inhalt sinngemäß wiedergibt, die Bedeutung erhält, keine neuen " +

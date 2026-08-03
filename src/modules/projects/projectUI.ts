@@ -11,6 +11,7 @@ import { openResults } from "../results/resultsUI";
 import { openScreening } from "../screening/screeningUI";
 import { openExtraction } from "../extraction/extractionUI";
 import { openQuality } from "../quality/qualityUI";
+import { openSynthesis } from "../synthesis/synthesisUI";
 import { openAISettings } from "../ai/settingsUI";
 import { type Project } from "../types";
 
@@ -306,6 +307,14 @@ export async function openProjectManager(pm: ProjectManager): Promise<void> {
         const id = String(data.selected ?? "");
         if (!id) return;
         await openQuality(pm, id);
+      },
+    })
+    .addButton("Synthese…", "synthesis", {
+      noClose: true,
+      callback: async () => {
+        const id = String(data.selected ?? "");
+        if (!id) return;
+        await openSynthesis(pm, id);
       },
     })
     .addButton("Löschen", "delete", {

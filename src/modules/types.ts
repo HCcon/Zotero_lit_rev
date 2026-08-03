@@ -121,6 +121,8 @@ export interface Project {
   extractions?: Extraction[];
   /** Quality assessments (Phase 4). */
   qualityAssessments?: QualityAssessment[];
+  /** Latest cross-study synthesis (Phase 4). */
+  synthesis?: Synthesis;
   /** ISO datetime of the last analysis run. */
   lastRun?: string;
   /** ISO date (YYYY-MM-DD). */
@@ -190,6 +192,18 @@ export interface QualityAssessment {
   model?: string;
   status?: "ai-unreviewed" | "confirmed";
   updatedAt?: string;
+}
+
+/** Cross-study synthesis result (Konzept Kap. 21/22/24). */
+export interface Synthesis {
+  generatedAt: string;
+  model: string;
+  /** Number of studies included in the synthesis. */
+  studyCount: number;
+  keyFindings: string;
+  contradictions: string;
+  researchGaps: string;
+  newQuestions: string;
 }
 
 /** Root object persisted to disk. */

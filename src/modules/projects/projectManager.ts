@@ -9,6 +9,7 @@ import {
   type ProjectSources,
   type QualityAssessment,
   type ScreeningRecord,
+  type Synthesis,
 } from "../types";
 
 /**
@@ -325,5 +326,20 @@ export class ProjectManager {
     if (idx >= 0) project.qualityAssessments[idx] = withTime;
     else project.qualityAssessments.push(withTime);
     await saveData(this.data);
+  }
+
+  // --- Phase 4: Synthese --------------------------------------------------
+
+  async setSynthesis(projectId: string, synthesis: Synthesis): Promise<void> {
+    await this.ensureLoaded();
+    const project = this.data.projects.find((p) => p.projectId === projectId);
+    if (!project) return;
+    project.synthesis = synthesis;
+    await saveData(this.data);
+  }
+
+  async getSynthesis(projectId: string): Promise<Synthesis | undefined> {
+    const project = await this.get(projectId);
+    return project?.synthesis;
   }
 }

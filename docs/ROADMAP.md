@@ -72,7 +72,8 @@ Entspricht den Akzeptanzkriterien in KONZEPT.md Kap. 20.
       inkl. Studiencharakteristika-Export
 - [x] Qualitätsbewertung / Risk of Bias (10 Kriterien, KI-Vorschlag + manuelle
       Bestätigung, Score, Qualitätsmatrix-Export)
-- [ ] Studienvergleich, Synthese, Forschungslücken-Matrix
+- [x] Evidenzsynthese: studienübergreifende Erkenntnisse, Widersprüche,
+      Forschungslücken, neue Forschungsfragen (KI) + Markdown-Export
 - [ ] Strukturierte Review-Berichte (DOCX)
 
 ## Grundsätze (gelten in allen Phasen)

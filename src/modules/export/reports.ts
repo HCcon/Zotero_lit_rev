@@ -222,3 +222,41 @@ export async function exportQualityMatrix(
     [header, ...rows].join("\n"),
   );
 }
+
+// --- Synthesis report -----------------------------------------------------
+
+export async function exportSynthesis(
+  project: Project,
+): Promise<string | null> {
+  const s = project.synthesis;
+  if (!s) return null;
+  const md = [
+    `# Evidenzsynthese — ${project.name}`,
+    "",
+    `Forschungsfrage: ${project.researchQuestion || "(nicht angegeben)"}`,
+    `Studien: ${s.studyCount} · KI-Modell: ${s.model} · erstellt: ${new Date(
+      s.generatedAt,
+    ).toLocaleString()}`,
+    "",
+    "## Zentrale Erkenntnisse",
+    s.keyFindings || "(keine)",
+    "",
+    "## Widersprüchliche Befunde",
+    s.contradictions || "(keine)",
+    "",
+    "## Forschungslücken",
+    s.researchGaps || "(keine)",
+    "",
+    "## Mögliche neue Forschungsfragen (KI-generierte Hypothesen)",
+    s.newQuestions || "(keine)",
+    "",
+    "---",
+    "_KI-generierte Synthese – vor wissenschaftlicher Verwendung prüfen._",
+  ].join("\n");
+  return saveWithPicker(
+    "Synthesebericht als Markdown",
+    "md",
+    `${sanitize(project.name)}-synthese.md`,
+    md,
+  );
+}
