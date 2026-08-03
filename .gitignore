@@ -19,3 +19,7 @@ build/
 # Editor
 .vscode/
 .idea/
+
+# Lokale Export-Testdateien
+*.doc
+*.svg
