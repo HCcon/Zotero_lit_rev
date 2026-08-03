@@ -13,6 +13,7 @@ import { openExtraction } from "../extraction/extractionUI";
 import { openQuality } from "../quality/qualityUI";
 import { openSynthesis } from "../synthesis/synthesisUI";
 import { openAISettings } from "../ai/settingsUI";
+import { actionColumn } from "../ui/dialogParts";
 import { type Project } from "../types";
 
 /**
@@ -191,7 +192,7 @@ export async function openProjectManager(pm: ProjectManager): Promise<void> {
     selected: projects[0]?.projectId ?? "",
   };
 
-  const dialog = new DialogHelper(3, 1);
+  const dialog = new DialogHelper(2, 2);
 
   const optionChildren =
     projects.length > 0
@@ -219,6 +220,15 @@ export async function openProjectManager(pm: ProjectManager): Promise<void> {
     }
     void openProjectManager(pm);
   };
+  const sel = () => String(data.selected ?? "");
+  const withProject = async (fn: (id: string) => void | Promise<void>) => {
+    const id = sel();
+    if (!id) {
+      mainWindow().alert("Bitte zuerst ein Projekt auswählen.");
+      return;
+    }
+    await fn(id);
+  };
 
   dialog
     .addCell(0, 0, {
@@ -232,111 +242,118 @@ export async function openProjectManager(pm: ProjectManager): Promise<void> {
       attributes: {
         "data-bind": "selected",
         "data-prop": "value",
-        size: "12",
+        size: "16",
       },
-      styles: { width: "480px" },
+      styles: { width: "420px", fontSize: "13px" },
       children: optionChildren as any,
     })
-    .addButton("Neu…", "new", {
-      noClose: true,
-      callback: async () => {
-        const input = await openProjectForm();
-        if (input) {
-          await pm.create(input);
-          reopen();
-        }
+    .addCell(1, 1, actionColumn([
+      { heading: "Projekt" },
+      {
+        label: "Neu…",
+        title: "Neues Rechercheprojekt anlegen (Forschungsfrage, Review-Typ …).",
+        variant: "primary",
+        onClick: async () => {
+          const input = await openProjectForm();
+          if (input) {
+            await pm.create(input);
+            reopen();
+          }
+        },
       },
-    })
-    .addButton("Bearbeiten…", "edit", {
-      noClose: true,
-      callback: async () => {
-        const id = String(data.selected ?? "");
-        if (!id) return;
-        const existing = await pm.get(id);
-        if (!existing) return;
-        const input = await openProjectForm(existing);
-        if (input) {
-          await pm.update(id, input);
-          reopen();
-        }
+      {
+        label: "Bearbeiten…",
+        title: "Das ausgewählte Projekt bearbeiten.",
+        onClick: () =>
+          withProject(async (id) => {
+            const existing = await pm.get(id);
+            if (!existing) return;
+            const input = await openProjectForm(existing);
+            if (input) {
+              await pm.update(id, input);
+              reopen();
+            }
+          }),
       },
-    })
-    .addButton("Sammlungen…", "sources", {
-      noClose: true,
-      callback: async () => {
-        const id = String(data.selected ?? "");
-        if (!id) return;
-        await openCollectionSelector(pm, id);
+      {
+        label: "Löschen",
+        title: "Das ausgewählte Projekt löschen (nur die Plugin-Daten).",
+        variant: "danger",
+        onClick: () =>
+          withProject(async (id) => {
+            const existing = await pm.get(id);
+            if (!existing) return;
+            if (
+              mainWindow().confirm(`Projekt „${existing.name}" wirklich löschen?`)
+            ) {
+              await pm.remove(id);
+              reopen();
+            }
+          }),
       },
-    })
-    .addButton("Suchkonzepte…", "concepts", {
-      noClose: true,
-      callback: async () => {
-        const id = String(data.selected ?? "");
-        if (!id) return;
-        await openConceptManager(pm, id);
+      { heading: "Recherche vorbereiten" },
+      {
+        label: "Sammlungen…",
+        title:
+          "Zotero-Sammlungen (Ordner) auswählen, die durchsucht werden sollen.",
+        onClick: () => withProject((id) => openCollectionSelector(pm, id)),
       },
-    })
-    .addButton("Analyse & Treffer…", "results", {
-      noClose: true,
-      callback: async () => {
-        const id = String(data.selected ?? "");
-        if (!id) return;
-        await openResults(pm, id);
+      {
+        label: "Suchkonzepte…",
+        title:
+          "Keywords, Synonyme, Kontextbeschreibung und Beispiele je Suchkonzept festlegen.",
+        onClick: () => withProject((id) => openConceptManager(pm, id)),
       },
-    })
-    .addButton("Screening…", "screening", {
-      noClose: true,
-      callback: async () => {
-        const id = String(data.selected ?? "");
-        if (!id) return;
-        await openScreening(pm, id);
+      {
+        label: "Analyse & Treffer…",
+        title:
+          "PDFs durchsuchen; Treffer prüfen, KI-Bewertung, Paraphrasen, Kodierung, Export.",
+        variant: "primary",
+        onClick: () => withProject((id) => openResults(pm, id)),
       },
-    })
-    .addButton("Extraktion…", "extraction", {
-      noClose: true,
-      callback: async () => {
-        const id = String(data.selected ?? "");
-        if (!id) return;
-        await openExtraction(pm, id);
+      { heading: "Systematisches Review" },
+      {
+        label: "Screening…",
+        title:
+          "Studien ein-/ausschließen, Ausschlussgründe, Dublettenprüfung, PRISMA, Evidenztabelle.",
+        onClick: () => withProject((id) => openScreening(pm, id)),
       },
-    })
-    .addButton("Qualität…", "quality", {
-      noClose: true,
-      callback: async () => {
-        const id = String(data.selected ?? "");
-        if (!id) return;
-        await openQuality(pm, id);
+      {
+        label: "Extraktion…",
+        title:
+          "Studienmerkmale strukturiert erfassen: Methode, Stichprobe, Ergebnisse, Limitationen …",
+        onClick: () => withProject((id) => openExtraction(pm, id)),
       },
-    })
-    .addButton("Synthese…", "synthesis", {
-      noClose: true,
-      callback: async () => {
-        const id = String(data.selected ?? "");
-        if (!id) return;
-        await openSynthesis(pm, id);
+      {
+        label: "Qualität…",
+        title:
+          "Methodische Qualität / Risk of Bias je Studie bewerten (10 Kriterien, Score).",
+        onClick: () => withProject((id) => openQuality(pm, id)),
       },
-    })
-    .addButton("Löschen", "delete", {
-      noClose: true,
-      callback: async () => {
-        const id = String(data.selected ?? "");
-        if (!id) return;
-        const existing = await pm.get(id);
-        if (!existing) return;
-        if (mainWindow().confirm(`Projekt „${existing.name}" wirklich löschen?`)) {
-          await pm.remove(id);
-          reopen();
-        }
+      {
+        label: "Synthese…",
+        title:
+          "Studienübergreifende Erkenntnisse, Widersprüche und Forschungslücken (KI).",
+        onClick: () => withProject((id) => openSynthesis(pm, id)),
       },
-    })
-    .addButton("KI-Einstellungen…", "aicfg", {
-      noClose: true,
-      callback: async () => {
-        await openAISettings();
+      { heading: "Sonstiges" },
+      {
+        label: "KI-Einstellungen…",
+        title: "Anbieter, Modell und API-Schlüssel für die KI-Funktionen.",
+        onClick: () => openAISettings(),
       },
-    })
-    .addButton("Schließen", "close")
+      {
+        label: "Schließen",
+        title: "Dieses Fenster schließen.",
+        onClick: () => {
+          try {
+            dialog.window?.close();
+          } catch {
+            /* ignore */
+          }
+        },
+      },
+    ]))
     .setDialogData(data);
 
   dialog.open("Zotero Literature Review — Projekte", {

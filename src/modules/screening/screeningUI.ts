@@ -9,6 +9,7 @@ import {
   exportPrisma,
   exportScreening,
 } from "../export/reports";
+import { actionColumn } from "../ui/dialogParts";
 import { type ScreeningDecision, type ScreeningRecord } from "../types";
 
 /**
@@ -135,7 +136,7 @@ export async function openScreening(
   }
 
   const data: Record<string, any> = { selected: records[0]?.itemKey ?? "" };
-  const dialog = new DialogHelper(3, 1);
+  const dialog = new DialogHelper(2, 2);
 
   const c = prismaCounts(records);
   const summary = `${records.length} Einträge · ${c.included} eingeschlossen · ${c.excluded} ausgeschlossen · ${c.duplicatesRemoved} Dubletten · ${c.undecided} offen`;
@@ -199,94 +200,121 @@ export async function openScreening(
     .addCell(1, 0, {
       tag: "select",
       namespace: "html",
-      attributes: { "data-bind": "selected", "data-prop": "value", size: "14" },
-      styles: { width: "600px", fontFamily: "monospace" },
+      attributes: { "data-bind": "selected", "data-prop": "value", size: "16" },
+      styles: { width: "480px", fontFamily: "monospace", fontSize: "12px" },
       children: options as any,
     })
-    .addButton("Einschließen", "inc", {
-      noClose: true,
-      callback: () => setDecision("included"),
-    })
-    .addButton("Ausschließen…", "exc", {
-      noClose: true,
-      callback: async () => {
-        const key = selected();
-        if (!key) return;
-        const rec = (await pm.listScreening(projectId)).find(
-          (r) => r.itemKey === key,
-        );
-        const result = await openExclusionDialog(rec);
-        if (result) {
-          await pm.updateScreening(projectId, key, {
-            decision: "excluded",
-            exclusionReason: result.reason,
-            note: result.note,
-          });
+    .addCell(1, 1, actionColumn([
+      { heading: "Entscheidung (ausgewählter Eintrag)" },
+      {
+        label: "Einschließen",
+        title: "Den ausgewählten Eintrag in das Review aufnehmen.",
+        variant: "primary",
+        onClick: () => setDecision("included"),
+      },
+      {
+        label: "Ausschließen…",
+        title: "Ausschließen und einen standardisierten Grund + Notiz angeben.",
+        onClick: async () => {
+          const key = selected();
+          if (!key) return;
+          const rec = (await pm.listScreening(projectId)).find(
+            (r) => r.itemKey === key,
+          );
+          const result = await openExclusionDialog(rec);
+          if (result) {
+            await pm.updateScreening(projectId, key, {
+              decision: "excluded",
+              exclusionReason: result.reason,
+              note: result.note,
+            });
+            reopen();
+          }
+        },
+      },
+      {
+        label: "Vielleicht",
+        title: "Als „möglicherweise relevant“ markieren (später erneut prüfen).",
+        onClick: () => setDecision("maybe"),
+      },
+      {
+        label: "Hintergrund",
+        title: "Als Hintergrund-/Methodenliteratur markieren.",
+        onClick: () => setDecision("background"),
+      },
+      { heading: "Werkzeuge" },
+      {
+        label: "Dubletten prüfen",
+        title: "Mögliche Dubletten über DOI bzw. Titel + Jahr erkennen und markieren.",
+        onClick: async () => {
+          const n = await pm.runDuplicateDetection(projectId);
+          mainWindow().alert(`${n} mögliche Dublette(n) markiert.`);
           reopen();
-        }
+        },
       },
-    })
-    .addButton("Vielleicht", "maybe", {
-      noClose: true,
-      callback: () => setDecision("maybe"),
-    })
-    .addButton("Hintergrund", "bg", {
-      noClose: true,
-      callback: () => setDecision("background"),
-    })
-    .addButton("Dubletten prüfen", "dup", {
-      noClose: true,
-      callback: async () => {
-        const n = await pm.runDuplicateDetection(projectId);
-        mainWindow().alert(`${n} mögliche Dublette(n) markiert.`);
-        reopen();
+      {
+        label: "PRISMA…",
+        title: "Aktuelle PRISMA-Kennzahlen anzeigen (identifiziert, eingeschlossen …).",
+        onClick: async () => {
+          mainWindow().alert(prismaText(await pm.listScreening(projectId)));
+        },
       },
-    })
-    .addButton("PRISMA…", "prisma", {
-      noClose: true,
-      callback: async () => {
-        mainWindow().alert(prismaText(await pm.listScreening(projectId)));
+      {
+        label: "Aktualisieren",
+        title: "Einträge aus den zugeordneten Sammlungen (neu) übernehmen.",
+        onClick: async () => {
+          const n = await pm.syncScreening(projectId);
+          mainWindow().alert(`${n} Einträge aus den Sammlungen übernommen.`);
+          reopen();
+        },
       },
-    })
-    .addButton("Aktualisieren", "sync", {
-      noClose: true,
-      callback: async () => {
-        const n = await pm.syncScreening(projectId);
-        mainWindow().alert(`${n} Einträge aus den Sammlungen übernommen.`);
-        reopen();
+      { heading: "Export" },
+      {
+        label: "Screening-Liste (CSV)",
+        title: "Alle Screening-Entscheidungen als CSV speichern.",
+        onClick: async () => {
+          const p = await pm.get(projectId);
+          if (p) {
+            const path = await exportScreening(p);
+            if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+          }
+        },
       },
-    })
-    .addButton("Export: Screening", "expS", {
-      noClose: true,
-      callback: async () => {
-        const p = await pm.get(projectId);
-        if (p) {
-          const path = await exportScreening(p);
-          if (path) mainWindow().alert(`Gespeichert:\n${path}`);
-        }
+      {
+        label: "Evidenztabelle (CSV)",
+        title:
+          "Eingeschlossene Studien mit Fundstellen, Paraphrasen und Kodierung als CSV.",
+        onClick: async () => {
+          const p = await pm.get(projectId);
+          if (p) {
+            const path = await exportEvidence(p);
+            if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+          }
+        },
       },
-    })
-    .addButton("Export: Evidenztabelle", "expE", {
-      noClose: true,
-      callback: async () => {
-        const p = await pm.get(projectId);
-        if (p) {
-          const path = await exportEvidence(p);
-          if (path) mainWindow().alert(`Gespeichert:\n${path}`);
-        }
+      {
+        label: "PRISMA-Bericht (Markdown)",
+        title: "PRISMA-Kennzahlen als Markdown-Bericht speichern.",
+        onClick: async () => {
+          const p = await pm.get(projectId);
+          if (p) {
+            const path = await exportPrisma(p);
+            if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+          }
+        },
       },
-    })
-    .addButton("Export: PRISMA", "expP", {
-      noClose: true,
-      callback: async () => {
-        const p = await pm.get(projectId);
-        if (p) {
-          const path = await exportPrisma(p);
-          if (path) mainWindow().alert(`Gespeichert:\n${path}`);
-        }
+      {
+        label: "Schließen",
+        title: "Dieses Fenster schließen.",
+        onClick: () => {
+          try {
+            dialog.window?.close();
+          } catch {
+            /* ignore */
+          }
+        },
       },
-    })
-    .addButton("Schließen", "close")
+    ]))
     .setDialogData(data);
 
   dialog.open(`Screening — ${project.name}`, {

@@ -5,6 +5,7 @@ import { assessQuality } from "../ai/aiService";
 import { isAIReady } from "../ai/aiConfig";
 import { getItemTextByKey } from "../search/searchEngine";
 import { exportQualityMatrix } from "../export/reports";
+import { actionColumn } from "../ui/dialogParts";
 import {
   type Project,
   type QualityAssessment,
@@ -180,7 +181,7 @@ export async function openQuality(
   const byKey = new Map(assessments.map((q) => [q.itemKey, q]));
 
   const data: Record<string, any> = { selected: items[0]?.itemKey ?? "" };
-  const dialog = new DialogHelper(3, 1);
+  const dialog = new DialogHelper(2, 2);
 
   const options =
     items.length > 0
@@ -242,62 +243,82 @@ export async function openQuality(
     .addCell(1, 0, {
       tag: "select",
       namespace: "html",
-      attributes: { "data-bind": "selected", "data-prop": "value", size: "14" },
-      styles: { width: "560px", fontFamily: "monospace" },
+      attributes: { "data-bind": "selected", "data-prop": "value", size: "16" },
+      styles: { width: "480px", fontFamily: "monospace", fontSize: "12px" },
       children: options as any,
     })
-    .addButton("KI-Bewertung (Auswahl)", "aione", {
-      noClose: true,
-      callback: async () => {
-        const rec = selectedRec();
-        if (!rec) return;
-        if (!isAIReady()) {
-          mainWindow().alert("KI ist nicht konfiguriert (KI-Einstellungen…).");
-          return;
-        }
-        try {
-          await runQuality(pm, project, rec);
-          mainWindow().alert("Qualitätsbewertung erstellt (bitte prüfen).");
-          reopen();
-        } catch (e) {
-          mainWindow().alert(`Bewertung fehlgeschlagen:\n${e}`);
-        }
+    .addCell(1, 1, actionColumn([
+      { heading: "Qualitätsbewertung" },
+      {
+        label: "KI-Bewertung (Auswahl)",
+        title:
+          "Bewertet die 10 Qualitätskriterien der ausgewählten Studie per KI (fehlende Info = „unklar“).",
+        variant: "primary",
+        onClick: async () => {
+          const rec = selectedRec();
+          if (!rec) return;
+          if (!isAIReady()) {
+            mainWindow().alert("KI ist nicht konfiguriert (KI-Einstellungen…).");
+            return;
+          }
+          try {
+            await runQuality(pm, project, rec);
+            mainWindow().alert("Qualitätsbewertung erstellt (bitte prüfen).");
+            reopen();
+          } catch (e) {
+            mainWindow().alert(`Bewertung fehlgeschlagen:\n${e}`);
+          }
+        },
       },
-    })
-    .addButton("Bearbeiten…", "edit", {
-      noClose: true,
-      callback: async () => {
-        const rec = selectedRec();
-        if (rec) await openQualityForm(pm, project, rec);
+      {
+        label: "Bearbeiten…",
+        title: "Kriterien prüfen/anpassen und die Bewertung bestätigen.",
+        onClick: async () => {
+          const rec = selectedRec();
+          if (rec) await openQualityForm(pm, project, rec);
+        },
       },
-    })
-    .addButton("KI: alle bewerten", "aiall", {
-      noClose: true,
-      callback: async () => {
-        if (!isAIReady()) {
-          mainWindow().alert("KI ist nicht konfiguriert (KI-Einstellungen…).");
-          return;
-        }
-        try {
-          dialog.window?.close();
-        } catch {
-          /* ignore */
-        }
-        await batchQuality(pm, project);
-        void openQuality(pm, projectId);
+      {
+        label: "KI: alle bewerten",
+        title: "Qualitätsbewertung per KI für alle eingeschlossenen Studien.",
+        onClick: async () => {
+          if (!isAIReady()) {
+            mainWindow().alert("KI ist nicht konfiguriert (KI-Einstellungen…).");
+            return;
+          }
+          try {
+            dialog.window?.close();
+          } catch {
+            /* ignore */
+          }
+          await batchQuality(pm, project);
+          void openQuality(pm, projectId);
+        },
       },
-    })
-    .addButton("Export: Qualitätsmatrix", "exp", {
-      noClose: true,
-      callback: async () => {
-        const p = await pm.get(projectId);
-        if (p) {
-          const path = await exportQualityMatrix(p);
-          if (path) mainWindow().alert(`Gespeichert:\n${path}`);
-        }
+      { heading: "Export" },
+      {
+        label: "Qualitätsmatrix (CSV)",
+        title: "Alle Bewertungen samt Score als CSV-Matrix speichern.",
+        onClick: async () => {
+          const p = await pm.get(projectId);
+          if (p) {
+            const path = await exportQualityMatrix(p);
+            if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+          }
+        },
       },
-    })
-    .addButton("Schließen", "close")
+      {
+        label: "Schließen",
+        title: "Dieses Fenster schließen.",
+        onClick: () => {
+          try {
+            dialog.window?.close();
+          } catch {
+            /* ignore */
+          }
+        },
+      },
+    ]))
     .setDialogData(data);
 
   dialog.open(`Qualitätsbewertung — ${project.name}`, {

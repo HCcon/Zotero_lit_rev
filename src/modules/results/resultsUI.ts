@@ -12,6 +12,7 @@ import {
 import { isAIReady } from "../ai/aiConfig";
 import { CODES, codeById, codeLabel } from "../coding/codes";
 import { applyCodeTags } from "../coding/tagWriter";
+import { actionColumn } from "../ui/dialogParts";
 import { type Concept, type Finding } from "../types";
 
 /**
@@ -207,7 +208,11 @@ async function openFindingDetail(
       tag: "div",
       namespace: "html",
       styles: {
-        maxWidth: "520px",
+        width: "520px",
+        maxHeight: "160px",
+        overflow: "auto",
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
         padding: "6px",
         border: "1px solid rgba(128,128,128,0.4)",
         borderRadius: "4px",
@@ -217,7 +222,12 @@ async function openFindingDetail(
     .addCell(2, 0, {
       tag: "small",
       namespace: "html",
-      styles: { color: "gray" },
+      styles: {
+        color: "gray",
+        width: "520px",
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+      },
       properties: { textContent: finding.explanation },
     })
     .addCell(3, 0, {
@@ -236,7 +246,12 @@ async function openFindingDetail(
       tag: "small",
       namespace: "html",
       id: "ai-info",
-      styles: { color: "gray", maxWidth: "520px" },
+      styles: {
+        color: "gray",
+        width: "520px",
+        whiteSpace: "pre-wrap",
+        wordBreak: "break-word",
+      },
       properties: { textContent: aiInfo },
     })
     .addCell(6, 0, {
@@ -360,7 +375,7 @@ export async function openResults(
   const findings = await pm.listFindings(projectId);
   const data: Record<string, any> = { selected: findings[0]?.findingId ?? "" };
 
-  const dialog = new DialogHelper(3, 1);
+  const dialog = new DialogHelper(2, 2);
 
   const lastRun = project.lastRun
     ? new Date(project.lastRun).toLocaleString()
@@ -422,152 +437,183 @@ export async function openResults(
     .addCell(1, 0, {
       tag: "select",
       namespace: "html",
-      attributes: { "data-bind": "selected", "data-prop": "value", size: "14" },
-      styles: { width: "560px", fontFamily: "monospace" },
+      attributes: { "data-bind": "selected", "data-prop": "value", size: "16" },
+      styles: { width: "460px", fontFamily: "monospace", fontSize: "12px" },
       children: optionChildren as any,
     })
-    .addButton("Analyse starten", "run", {
-      noClose: true,
-      callback: async () => {
-        try {
-          dialog.window?.close();
-        } catch {
-          /* ignore */
-        }
-        await doAnalysis(pm, projectId);
-        void openResults(pm, projectId);
+    .addCell(1, 1, actionColumn([
+      { heading: "Analyse" },
+      {
+        label: "Analyse starten",
+        title:
+          "Durchsucht die PDFs der zugeordneten Sammlungen nach den Suchkonzepten und erzeugt die Trefferliste.",
+        variant: "primary",
+        onClick: async () => {
+          try {
+            dialog.window?.close();
+          } catch {
+            /* ignore */
+          }
+          await doAnalysis(pm, projectId);
+          void openResults(pm, projectId);
+        },
       },
-    })
-    .addButton("Details / Paraphrase…", "detail", {
-      noClose: true,
-      callback: async () => {
-        const f = await selectedFinding();
-        if (f) await openFindingDetail(pm, projectId, f);
+      { heading: "Treffer prüfen" },
+      {
+        label: "Details / Paraphrase…",
+        title:
+          "Fundstelle im Detail ansehen; Paraphrase und Kodierung setzen; KI-Bewertung/-Paraphrase/-Kodierung für diese Stelle.",
+        onClick: async () => {
+          const f = await selectedFinding();
+          if (f) await openFindingDetail(pm, projectId, f);
+        },
       },
-    })
-    .addButton("Als Notiz übernehmen", "accept", {
-      noClose: true,
-      callback: async () => {
-        const f = await selectedFinding();
-        if (!f) return;
-        const noteKey = await createFindingNote(project, f, f.paraphrase ?? "");
-        if (noteKey) {
+      {
+        label: "Als Notiz übernehmen",
+        title:
+          "Erzeugt am zugehörigen Zotero-Eintrag eine strukturierte Notiz mit dieser Fundstelle (nichtdestruktiv).",
+        onClick: async () => {
+          const f = await selectedFinding();
+          if (!f) return;
+          const noteKey = await createFindingNote(project, f, f.paraphrase ?? "");
+          if (noteKey) {
+            await pm.updateFinding(projectId, f.findingId, {
+              reviewStatus: "accepted",
+              noteKey,
+            });
+            mainWindow().alert("Fundstelle als Notiz am Eintrag gespeichert.");
+            reopen();
+          } else {
+            mainWindow().alert(
+              "Konnte den zugehörigen Eintrag nicht finden (evtl. anderes Profil).",
+            );
+          }
+        },
+      },
+      {
+        label: "Ablehnen",
+        title: "Markiert die ausgewählte Fundstelle als nicht relevant.",
+        onClick: async () => {
+          const f = await selectedFinding();
+          if (!f) return;
           await pm.updateFinding(projectId, f.findingId, {
-            reviewStatus: "accepted",
-            noteKey,
+            reviewStatus: "rejected",
           });
-          mainWindow().alert("Fundstelle als Notiz am Eintrag gespeichert.");
           reopen();
-        } else {
-          mainWindow().alert(
-            "Konnte den zugehörigen Eintrag nicht finden (evtl. anderes Profil).",
-          );
-        }
+        },
       },
-    })
-    .addButton("Ablehnen", "reject", {
-      noClose: true,
-      callback: async () => {
-        const f = await selectedFinding();
-        if (!f) return;
-        await pm.updateFinding(projectId, f.findingId, {
-          reviewStatus: "rejected",
-        });
-        reopen();
+      { heading: "KI (alle Treffer)" },
+      {
+        label: "KI: alle bewerten",
+        title:
+          "Lässt die KI jede Fundstelle nach Relevanz bewerten (Score + Empfehlung + Begründung).",
+        onClick: async () => {
+          if (!isAIReady()) {
+            mainWindow().alert(
+              "KI ist nicht konfiguriert. Bitte zuerst „KI-Einstellungen…“.",
+            );
+            return;
+          }
+          try {
+            dialog.window?.close();
+          } catch {
+            /* ignore */
+          }
+          await batchEvaluate(pm, projectId);
+          void openResults(pm, projectId);
+        },
       },
-    })
-    .addButton("Export CSV", "csv", {
-      noClose: true,
-      callback: async () => {
-        const p = await pm.get(projectId);
-        if (!p) return;
-        const path = await exportFindings(p, "csv");
-        if (path) mainWindow().alert(`CSV exportiert:\n${path}`);
+      {
+        label: "KI: alle kodieren",
+        title:
+          "Ordnet jede Fundstelle per KI einer Farbkategorie zu (Vorschlag, prüfbar).",
+        onClick: async () => {
+          if (!isAIReady()) {
+            mainWindow().alert(
+              "KI ist nicht konfiguriert. Bitte zuerst „KI-Einstellungen…“.",
+            );
+            return;
+          }
+          try {
+            dialog.window?.close();
+          } catch {
+            /* ignore */
+          }
+          await batchCode(pm, projectId);
+          void openResults(pm, projectId);
+        },
       },
-    })
-    .addButton("Export JSON", "json", {
-      noClose: true,
-      callback: async () => {
-        const p = await pm.get(projectId);
-        if (!p) return;
-        const path = await exportFindings(p, "json");
-        if (path) mainWindow().alert(`JSON exportiert:\n${path}`);
+      {
+        label: "Kodierung → Zotero-Tags",
+        title:
+          "Überträgt die Kodierungen als farbige Zotero-Tags an die Einträge (nichtdestruktiv, entfernbar).",
+        onClick: async () => {
+          const p = await pm.get(projectId);
+          if (!p) return;
+          const coded = (p.findings ?? []).filter(
+            (f) => f.codeId && f.codeStatus !== "rejected",
+          ).length;
+          if (coded === 0) {
+            mainWindow().alert(
+              "Keine Kodierungen vorhanden. Bitte zuerst kodieren (KI oder manuell).",
+            );
+            return;
+          }
+          if (
+            !mainWindow().confirm(
+              `${coded} kodierte Fundstelle(n) als farbige Zotero-Tags an den Einträgen übernehmen?`,
+            )
+          ) {
+            return;
+          }
+          try {
+            const res = await applyCodeTags(p, false);
+            mainWindow().alert(
+              `${res.tagsAdded} Tag(s) an ${res.itemsTagged} Eintrag/Einträgen gesetzt.`,
+            );
+          } catch (e) {
+            mainWindow().alert(`Fehler beim Setzen der Tags:\n${e}`);
+          }
+        },
       },
-    })
-    .addButton("KI-Einstellungen…", "aicfg", {
-      noClose: true,
-      callback: async () => {
-        await openAISettings();
+      { heading: "Export & Einstellungen" },
+      {
+        label: "Export CSV",
+        title: "Trefferliste als CSV-Datei speichern.",
+        onClick: async () => {
+          const p = await pm.get(projectId);
+          if (!p) return;
+          const path = await exportFindings(p, "csv");
+          if (path) mainWindow().alert(`CSV exportiert:\n${path}`);
+        },
       },
-    })
-    .addButton("KI: alle bewerten", "aiall", {
-      noClose: true,
-      callback: async () => {
-        if (!isAIReady()) {
-          mainWindow().alert(
-            "KI ist nicht konfiguriert. Bitte zuerst „KI-Einstellungen…\".",
-          );
-          return;
-        }
-        try {
-          dialog.window?.close();
-        } catch {
-          /* ignore */
-        }
-        await batchEvaluate(pm, projectId);
-        void openResults(pm, projectId);
+      {
+        label: "Export JSON",
+        title: "Trefferliste als JSON-Datei speichern.",
+        onClick: async () => {
+          const p = await pm.get(projectId);
+          if (!p) return;
+          const path = await exportFindings(p, "json");
+          if (path) mainWindow().alert(`JSON exportiert:\n${path}`);
+        },
       },
-    })
-    .addButton("KI: alle kodieren", "aicode", {
-      noClose: true,
-      callback: async () => {
-        if (!isAIReady()) {
-          mainWindow().alert(
-            "KI ist nicht konfiguriert. Bitte zuerst „KI-Einstellungen…\".",
-          );
-          return;
-        }
-        try {
-          dialog.window?.close();
-        } catch {
-          /* ignore */
-        }
-        await batchCode(pm, projectId);
-        void openResults(pm, projectId);
+      {
+        label: "KI-Einstellungen…",
+        title: "Anbieter, Modell und API-Schlüssel für die KI-Funktionen.",
+        onClick: () => openAISettings(),
       },
-    })
-    .addButton("Kodierung → Zotero-Tags", "tags", {
-      noClose: true,
-      callback: async () => {
-        const p = await pm.get(projectId);
-        if (!p) return;
-        const coded = (p.findings ?? []).filter(
-          (f) => f.codeId && f.codeStatus !== "rejected",
-        ).length;
-        if (coded === 0) {
-          mainWindow().alert(
-            "Keine Kodierungen vorhanden. Bitte zuerst kodieren (KI oder manuell).",
-          );
-          return;
-        }
-        if (
-          !mainWindow().confirm(
-            `${coded} kodierte Fundstelle(n) als farbige Zotero-Tags an den Einträgen übernehmen?`,
-          )
-        ) {
-          return;
-        }
-        try {
-          const res = await applyCodeTags(p, false);
-          mainWindow().alert(
-            `${res.tagsAdded} Tag(s) an ${res.itemsTagged} Eintrag/Einträgen gesetzt.`,
-          );
-        } catch (e) {
-          mainWindow().alert(`Fehler beim Setzen der Tags:\n${e}`);
-        }
+      {
+        label: "Schließen",
+        title: "Dieses Fenster schließen.",
+        onClick: () => {
+          try {
+            dialog.window?.close();
+          } catch {
+            /* ignore */
+          }
+        },
       },
-    })
-    .addButton("Schließen", "close")
+    ]))
     .setDialogData(data);
 
   dialog.open(`Treffer — ${project.name}`, {

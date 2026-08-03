@@ -3,6 +3,7 @@ import { ProjectManager } from "../projects/projectManager";
 import { synthesize } from "../ai/aiService";
 import { isAIReady } from "../ai/aiConfig";
 import { exportSynthesis } from "../export/reports";
+import { actionColumn } from "../ui/dialogParts";
 import { includedKeys } from "./synthesis";
 
 /**
@@ -43,7 +44,7 @@ export async function openSynthesis(
 
   const s = project.synthesis;
   const included = includedKeys(project).length;
-  const dialog = new DialogHelper(2, 1);
+  const dialog = new DialogHelper(2, 2);
 
   const headerText = s
     ? `${s.studyCount} Studien · Modell ${s.model} · ${new Date(s.generatedAt).toLocaleString()}`
@@ -92,7 +93,8 @@ export async function openSynthesis(
       tag: "div",
       namespace: "html",
       styles: {
-        maxHeight: "420px",
+        width: "620px",
+        maxHeight: "440px",
         overflow: "auto",
         border: "1px solid rgba(128,128,128,0.4)",
         borderRadius: "4px",
@@ -100,47 +102,64 @@ export async function openSynthesis(
       },
       children: body as any,
     })
-    .addButton("KI-Synthese erstellen", "run", {
-      noClose: true,
-      callback: async () => {
-        if (!isAIReady()) {
-          mainWindow().alert("KI ist nicht konfiguriert (KI-Einstellungen…).");
-          return;
-        }
-        try {
-          dialog.window?.close();
-        } catch {
-          /* ignore */
-        }
-        const pw = new ProgressWindowHelper("Zotero Literature Review");
-        pw.createLine({ text: "Erstelle Synthese …", progress: 50 });
-        pw.show();
-        try {
-          const result = await synthesize(project);
-          await pm.setSynthesis(projectId, result);
-          pw.changeLine({ text: "Synthese erstellt.", progress: 100 });
-          pw.startCloseTimer(2500);
-        } catch (e) {
-          pw.changeLine({ text: "Fehlgeschlagen.", progress: 100 });
-          pw.startCloseTimer(2000);
-          mainWindow().alert(`Synthese fehlgeschlagen:\n${e}`);
-        }
-        void openSynthesis(pm, projectId);
+    .addCell(1, 1, actionColumn([
+      { heading: "Synthese" },
+      {
+        label: "KI-Synthese erstellen",
+        title:
+          "Vergleicht alle eingeschlossenen Studien und erzeugt Erkenntnisse, Widersprüche, Forschungslücken und neue Fragen.",
+        variant: "primary",
+        onClick: async () => {
+          if (!isAIReady()) {
+            mainWindow().alert("KI ist nicht konfiguriert (KI-Einstellungen…).");
+            return;
+          }
+          try {
+            dialog.window?.close();
+          } catch {
+            /* ignore */
+          }
+          const pw = new ProgressWindowHelper("Zotero Literature Review");
+          pw.createLine({ text: "Erstelle Synthese …", progress: 50 });
+          pw.show();
+          try {
+            const result = await synthesize(project);
+            await pm.setSynthesis(projectId, result);
+            pw.changeLine({ text: "Synthese erstellt.", progress: 100 });
+            pw.startCloseTimer(2500);
+          } catch (e) {
+            pw.changeLine({ text: "Fehlgeschlagen.", progress: 100 });
+            pw.startCloseTimer(2000);
+            mainWindow().alert(`Synthese fehlgeschlagen:\n${e}`);
+          }
+          void openSynthesis(pm, projectId);
+        },
       },
-    })
-    .addButton("Export als Markdown", "exp", {
-      noClose: true,
-      callback: async () => {
-        const p = await pm.get(projectId);
-        if (!p?.synthesis) {
-          mainWindow().alert("Noch keine Synthese vorhanden.");
-          return;
-        }
-        const path = await exportSynthesis(p);
-        if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+      {
+        label: "Export als Markdown",
+        title: "Den Synthesebericht als Markdown-Datei speichern.",
+        onClick: async () => {
+          const p = await pm.get(projectId);
+          if (!p?.synthesis) {
+            mainWindow().alert("Noch keine Synthese vorhanden.");
+            return;
+          }
+          const path = await exportSynthesis(p);
+          if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+        },
       },
-    })
-    .addButton("Schließen", "close")
+      {
+        label: "Schließen",
+        title: "Dieses Fenster schließen.",
+        onClick: () => {
+          try {
+            dialog.window?.close();
+          } catch {
+            /* ignore */
+          }
+        },
+      },
+    ]))
     .setDialogData({});
 
   dialog.open(`Synthese — ${project.name}`, {

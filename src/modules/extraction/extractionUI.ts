@@ -5,6 +5,7 @@ import { extractStudy } from "../ai/aiService";
 import { isAIReady } from "../ai/aiConfig";
 import { getItemTextByKey } from "../search/searchEngine";
 import { exportExtractionTable } from "../export/reports";
+import { actionColumn } from "../ui/dialogParts";
 import { type Extraction, type Project, type ScreeningRecord } from "../types";
 
 /**
@@ -171,7 +172,7 @@ export async function openExtraction(
   const hasExtraction = new Set(extractions.map((e) => e.itemKey));
 
   const data: Record<string, any> = { selected: items[0]?.itemKey ?? "" };
-  const dialog = new DialogHelper(3, 1);
+  const dialog = new DialogHelper(2, 2);
 
   const options =
     items.length > 0
@@ -230,62 +231,82 @@ export async function openExtraction(
     .addCell(1, 0, {
       tag: "select",
       namespace: "html",
-      attributes: { "data-bind": "selected", "data-prop": "value", size: "14" },
-      styles: { width: "560px", fontFamily: "monospace" },
+      attributes: { "data-bind": "selected", "data-prop": "value", size: "16" },
+      styles: { width: "480px", fontFamily: "monospace", fontSize: "12px" },
       children: options as any,
     })
-    .addButton("KI-Extraktion (Auswahl)", "aione", {
-      noClose: true,
-      callback: async () => {
-        const rec = selectedRec();
-        if (!rec) return;
-        if (!isAIReady()) {
-          mainWindow().alert("KI ist nicht konfiguriert (KI-Einstellungen…).");
-          return;
-        }
-        try {
-          await runExtraction(pm, project, rec);
-          mainWindow().alert("Extraktion erstellt (bitte prüfen).");
-          reopen();
-        } catch (e) {
-          mainWindow().alert(`Extraktion fehlgeschlagen:\n${e}`);
-        }
+    .addCell(1, 1, actionColumn([
+      { heading: "Extraktion" },
+      {
+        label: "KI-Extraktion (Auswahl)",
+        title:
+          "Füllt für die ausgewählte Studie die 16 Merkmalsfelder per KI (nur vorhandene Angaben).",
+        variant: "primary",
+        onClick: async () => {
+          const rec = selectedRec();
+          if (!rec) return;
+          if (!isAIReady()) {
+            mainWindow().alert("KI ist nicht konfiguriert (KI-Einstellungen…).");
+            return;
+          }
+          try {
+            await runExtraction(pm, project, rec);
+            mainWindow().alert("Extraktion erstellt (bitte prüfen).");
+            reopen();
+          } catch (e) {
+            mainWindow().alert(`Extraktion fehlgeschlagen:\n${e}`);
+          }
+        },
       },
-    })
-    .addButton("Bearbeiten…", "edit", {
-      noClose: true,
-      callback: async () => {
-        const rec = selectedRec();
-        if (rec) await openExtractionForm(pm, project, rec);
+      {
+        label: "Bearbeiten…",
+        title: "Die extrahierten Felder ansehen, korrigieren und als geprüft speichern.",
+        onClick: async () => {
+          const rec = selectedRec();
+          if (rec) await openExtractionForm(pm, project, rec);
+        },
       },
-    })
-    .addButton("KI: alle extrahieren", "aiall", {
-      noClose: true,
-      callback: async () => {
-        if (!isAIReady()) {
-          mainWindow().alert("KI ist nicht konfiguriert (KI-Einstellungen…).");
-          return;
-        }
-        try {
-          dialog.window?.close();
-        } catch {
-          /* ignore */
-        }
-        await batchExtract(pm, project);
-        void openExtraction(pm, projectId);
+      {
+        label: "KI: alle extrahieren",
+        title: "KI-Extraktion für alle eingeschlossenen Studien nacheinander.",
+        onClick: async () => {
+          if (!isAIReady()) {
+            mainWindow().alert("KI ist nicht konfiguriert (KI-Einstellungen…).");
+            return;
+          }
+          try {
+            dialog.window?.close();
+          } catch {
+            /* ignore */
+          }
+          await batchExtract(pm, project);
+          void openExtraction(pm, projectId);
+        },
       },
-    })
-    .addButton("Export: Studiencharakteristika", "exp", {
-      noClose: true,
-      callback: async () => {
-        const p = await pm.get(projectId);
-        if (p) {
-          const path = await exportExtractionTable(p);
-          if (path) mainWindow().alert(`Gespeichert:\n${path}`);
-        }
+      { heading: "Export" },
+      {
+        label: "Studiencharakteristika (CSV)",
+        title: "Tabelle aller extrahierten Studienmerkmale als CSV speichern.",
+        onClick: async () => {
+          const p = await pm.get(projectId);
+          if (p) {
+            const path = await exportExtractionTable(p);
+            if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+          }
+        },
       },
-    })
-    .addButton("Schließen", "close")
+      {
+        label: "Schließen",
+        title: "Dieses Fenster schließen.",
+        onClick: () => {
+          try {
+            dialog.window?.close();
+          } catch {
+            /* ignore */
+          }
+        },
+      },
+    ]))
     .setDialogData(data);
 
   dialog.open(`Extraktion — ${project.name}`, {
