@@ -51,7 +51,7 @@ export async function evaluateRelevance(
   finding: Finding,
 ): Promise<RelevanceResult> {
   const prompt = buildRelevancePrompt(project, concept, finding);
-  const raw = await aiComplete(RELEVANCE_SYSTEM, prompt, 512);
+  const raw = await aiComplete(RELEVANCE_SYSTEM, prompt, 1200);
   const obj = extractJSON(raw);
 
   const score = Math.max(0, Math.min(100, Number(obj.score) || 0));
@@ -75,7 +75,7 @@ export interface CodingResult {
 export async function classifyFinding(
   finding: Finding,
 ): Promise<CodingResult> {
-  const raw = await aiComplete(CODING_SYSTEM, buildCodingPrompt(finding), 256);
+  const raw = await aiComplete(CODING_SYSTEM, buildCodingPrompt(finding), 800);
   const obj = extractJSON(raw);
   const codeId = CODES.some((c) => c.id === obj.code) ? obj.code : "context";
   return { codeId, rationale: String(obj.rationale ?? "").trim() };
@@ -86,7 +86,7 @@ export async function generateParaphrase(
   finding: Finding,
 ): Promise<{ text: string; model: string }> {
   const prompt = buildParaphrasePrompt(project, finding);
-  const text = await aiComplete(PARAPHRASE_SYSTEM, prompt, 512);
+  const text = await aiComplete(PARAPHRASE_SYSTEM, prompt, 1200);
   return { text: text.trim(), model: getAIConfig().model };
 }
 
@@ -100,7 +100,7 @@ export async function synthesize(project: Project): Promise<Synthesis> {
   const raw = await aiComplete(
     SYNTHESIS_SYSTEM,
     buildSynthesisPrompt(project, digest),
-    2000,
+    4000,
   );
   const obj = extractJSON(raw);
   return {
@@ -121,7 +121,7 @@ export async function assessQuality(
   const raw = await aiComplete(
     QUALITY_SYSTEM,
     buildQualityPrompt(project, text),
-    800,
+    1500,
   );
   const obj = extractJSON(raw);
   const ratings: Record<string, string> = {};
@@ -143,7 +143,7 @@ export async function extractStudy(
   const raw = await aiComplete(
     EXTRACTION_SYSTEM,
     buildExtractionPrompt(project, text),
-    1500,
+    2500,
   );
   const obj = extractJSON(raw);
   const fields: Record<string, string> = {};

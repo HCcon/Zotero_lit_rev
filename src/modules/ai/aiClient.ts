@@ -118,9 +118,11 @@ export async function aiComplete(
 
 /** Simple connectivity test used by the settings dialog. */
 export async function aiTest(): Promise<string> {
+  // Generous max_tokens: models with thinking on (e.g. claude-opus-5) need
+  // headroom so the short answer isn't truncated by the thinking budget.
   return aiComplete(
     "Antworte mit genau einem Wort.",
     "Antworte mit: OK",
-    16,
+    512,
   );
 }
