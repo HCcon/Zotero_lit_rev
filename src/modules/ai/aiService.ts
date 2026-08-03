@@ -3,10 +3,12 @@ import {
   CODING_SYSTEM,
   EXTRACTION_SYSTEM,
   PARAPHRASE_SYSTEM,
+  QUALITY_SYSTEM,
   RELEVANCE_SYSTEM,
   buildCodingPrompt,
   buildExtractionPrompt,
   buildParaphrasePrompt,
+  buildQualityPrompt,
   buildRelevancePrompt,
 } from "./prompts";
 import { getAIConfig } from "./aiConfig";
@@ -15,6 +17,7 @@ import {
   EXTRACTION_FIELDS,
   NOT_REPORTED,
 } from "../extraction/extraction";
+import { QUALITY_CRITERIA, RATING_IDS } from "../quality/quality";
 import { type Concept, type Finding, type Project } from "../types";
 
 /**
@@ -81,6 +84,28 @@ export async function generateParaphrase(
   const prompt = buildParaphrasePrompt(project, finding);
   const text = await aiComplete(PARAPHRASE_SYSTEM, prompt, 512);
   return { text: text.trim(), model: getAIConfig().model };
+}
+
+export async function assessQuality(
+  project: Project,
+  text: string,
+): Promise<{ ratings: Record<string, string>; note: string; model: string }> {
+  const raw = await aiComplete(
+    QUALITY_SYSTEM,
+    buildQualityPrompt(project, text),
+    800,
+  );
+  const obj = extractJSON(raw);
+  const ratings: Record<string, string> = {};
+  for (const c of QUALITY_CRITERIA) {
+    const v = obj[c.id];
+    ratings[c.id] = RATING_IDS.includes(v) ? v : "unclear";
+  }
+  return {
+    ratings,
+    note: String(obj.note ?? "").trim(),
+    model: getAIConfig().model,
+  };
 }
 
 export async function extractStudy(

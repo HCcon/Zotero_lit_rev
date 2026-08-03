@@ -7,6 +7,7 @@ import {
   type PluginData,
   type Project,
   type ProjectSources,
+  type QualityAssessment,
   type ScreeningRecord,
 } from "../types";
 
@@ -291,6 +292,38 @@ export class ProjectManager {
     const withTime = { ...extraction, updatedAt: new Date().toISOString() };
     if (idx >= 0) project.extractions[idx] = withTime;
     else project.extractions.push(withTime);
+    await saveData(this.data);
+  }
+
+  // --- Phase 4: Qualitätsbewertung ----------------------------------------
+
+  async listQuality(projectId: string): Promise<QualityAssessment[]> {
+    const project = await this.get(projectId);
+    return project?.qualityAssessments ?? [];
+  }
+
+  async getQuality(
+    projectId: string,
+    itemKey: string,
+  ): Promise<QualityAssessment | undefined> {
+    const project = await this.get(projectId);
+    return project?.qualityAssessments?.find((q) => q.itemKey === itemKey);
+  }
+
+  async upsertQuality(
+    projectId: string,
+    quality: QualityAssessment,
+  ): Promise<void> {
+    await this.ensureLoaded();
+    const project = this.data.projects.find((p) => p.projectId === projectId);
+    if (!project) return;
+    if (!project.qualityAssessments) project.qualityAssessments = [];
+    const idx = project.qualityAssessments.findIndex(
+      (q) => q.itemKey === quality.itemKey,
+    );
+    const withTime = { ...quality, updatedAt: new Date().toISOString() };
+    if (idx >= 0) project.qualityAssessments[idx] = withTime;
+    else project.qualityAssessments.push(withTime);
     await saveData(this.data);
   }
 }

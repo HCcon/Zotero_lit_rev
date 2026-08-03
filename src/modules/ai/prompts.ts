@@ -1,5 +1,6 @@
 import { CODES } from "../coding/codes";
 import { EXTRACTION_FIELDS, NOT_REPORTED } from "../extraction/extraction";
+import { QUALITY_CRITERIA, RATING_IDS } from "../quality/quality";
 import { type Concept, type Finding, type Project } from "../types";
 
 /**
@@ -105,6 +106,30 @@ export function buildExtractionPrompt(
     `"""${text}"""`,
     "",
     `Antworte NUR mit einem JSON-Objekt: { ${keys} }. Nicht gefundene Angaben: "${NOT_REPORTED}".`,
+  ].join("\n");
+}
+
+export const QUALITY_SYSTEM =
+  "Du bist ein methodisch geschulter Assistent für die kritische Bewertung " +
+  "wissenschaftlicher Studien. Bewerte jedes Kriterium nüchtern anhand des " +
+  "Textes. Wenn eine Information fehlt, wähle „unclear\". Antworte " +
+  "ausschließlich im geforderten JSON-Format.";
+
+export function buildQualityPrompt(project: Project, text: string): string {
+  const crit = QUALITY_CRITERIA.map((c) => `- ${c.id}: ${c.label}`).join("\n");
+  const keys = QUALITY_CRITERIA.map((c) => `"${c.id}": "<rating>"`).join(", ");
+  return [
+    `Forschungsfrage (Kontext): ${project.researchQuestion || "(nicht angegeben)"}`,
+    "",
+    "Bewerte die folgenden Qualitätskriterien:",
+    crit,
+    "",
+    `Mögliche Bewertungen (rating): ${RATING_IDS.join(", ")}.`,
+    "",
+    "Studientext (ggf. gekürzt):",
+    `"""${text}"""`,
+    "",
+    `Antworte NUR mit einem JSON-Objekt: { ${keys}, "note": "<kurze Gesamteinschätzung>" }.`,
   ].join("\n");
 }
 

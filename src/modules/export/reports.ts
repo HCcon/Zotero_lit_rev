@@ -7,6 +7,11 @@ import {
 } from "../screening/screening";
 import { codeLabel } from "../coding/codes";
 import { EXTRACTION_FIELDS } from "../extraction/extraction";
+import {
+  QUALITY_CRITERIA,
+  qualityScore,
+  ratingLabel,
+} from "../quality/quality";
 
 /**
  * Phase 3 – Berichte: Screening-Liste, PRISMA-Kennzahlen, Evidenztabelle.
@@ -178,6 +183,42 @@ export async function exportExtractionTable(
     "Studiencharakteristika als CSV",
     "csv",
     `${sanitize(project.name)}-studiencharakteristika.csv`,
+    [header, ...rows].join("\n"),
+  );
+}
+
+// --- Quality matrix -------------------------------------------------------
+
+export async function exportQualityMatrix(
+  project: Project,
+): Promise<string | null> {
+  const assessments = project.qualityAssessments ?? [];
+  const header = [
+    "Autor",
+    "Jahr",
+    "Titel",
+    ...QUALITY_CRITERIA.map((c) => c.label),
+    "Score %",
+    "Notiz",
+  ]
+    .map(csvCell)
+    .join(",");
+  const rows = assessments.map((q) =>
+    [
+      q.creator,
+      q.year,
+      q.title,
+      ...QUALITY_CRITERIA.map((c) => ratingLabel(q.ratings?.[c.id])),
+      String(qualityScore(q.ratings ?? {}).score),
+      q.note ?? "",
+    ]
+      .map(csvCell)
+      .join(","),
+  );
+  return saveWithPicker(
+    "Qualitätsmatrix als CSV",
+    "csv",
+    `${sanitize(project.name)}-qualitaet.csv`,
     [header, ...rows].join("\n"),
   );
 }

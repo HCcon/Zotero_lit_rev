@@ -119,6 +119,8 @@ export interface Project {
   screening?: ScreeningRecord[];
   /** Structured study extractions (Phase 4). */
   extractions?: Extraction[];
+  /** Quality assessments (Phase 4). */
+  qualityAssessments?: QualityAssessment[];
   /** ISO datetime of the last analysis run. */
   lastRun?: string;
   /** ISO date (YYYY-MM-DD). */
@@ -172,6 +174,21 @@ export interface Extraction {
   source?: "ai" | "manual";
   model?: string;
   status?: "ai-unreviewed" | "reviewed";
+  updatedAt?: string;
+}
+
+/** Quality / risk-of-bias assessment for one study (Konzept Kap. 20). */
+export interface QualityAssessment {
+  itemKey: string;
+  title: string;
+  creator: string;
+  year: string;
+  /** Criterion id → rating id (see quality/quality.ts). */
+  ratings: Record<string, string>;
+  note?: string;
+  source?: "ai" | "manual";
+  model?: string;
+  status?: "ai-unreviewed" | "confirmed";
   updatedAt?: string;
 }
 
