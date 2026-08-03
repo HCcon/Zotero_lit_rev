@@ -1,4 +1,6 @@
-import { DialogHelper, ProgressWindowHelper } from "zotero-plugin-toolkit";
+import { DialogHelper } from "zotero-plugin-toolkit";
+import { openProgressWindow } from "../ui/notify";
+import { confirmDialog, notify } from "../ui/notify";
 import { ProjectManager } from "../projects/projectManager";
 import { runAnalysis, countItems } from "../search/searchEngine";
 import { createFindingNote } from "../notes/noteWriter";
@@ -50,47 +52,37 @@ async function doAnalysis(
 
   const total = countItems(project);
   if (total === 0) {
-    mainWindow().alert(
+    notify(
       "Keine Einträge gefunden. Bitte zuerst unter „Sammlungen…\" " +
         "mindestens eine Sammlung mit Einträgen zuordnen.",
     );
     return;
   }
   if ((project.concepts ?? []).length === 0) {
-    mainWindow().alert(
+    notify(
       "Keine Suchkonzepte vorhanden. Bitte zuerst unter „Suchkonzepte…\" " +
         "mindestens ein Konzept mit Keywords anlegen.",
     );
     return;
   }
 
-  const pw = new ProgressWindowHelper("Zotero Literature Review");
-  pw.createLine({ text: `Analysiere 0/${total} …`, progress: 0 });
-  pw.show();
-
+  const prog = openProgressWindow("Analysiere Dokumente");
   try {
     const findings = await runAnalysis(project, (done, t) => {
-      const pct = t ? Math.round((done / t) * 100) : 100;
-      pw.changeLine({ text: `Analysiere ${done}/${t} …`, progress: pct });
+      void prog.set(done, t, `Analysiere ${done}/${t} Dokument(e)`);
     });
-
     await pm.setFindings(projectId, findings);
-    pw.changeLine({
-      text: `Fertig: ${findings.length} Fundstelle(n).`,
-      progress: 100,
-    });
-    pw.startCloseTimer(3000);
-    mainWindow().alert(
+    prog.close();
+    notify(
       `Analyse abgeschlossen.\n\n${total} Eintrag/Einträge durchsucht, ` +
         `${findings.length} Fundstelle(n) gefunden.\n\n` +
         "Die Treffer stehen jetzt in der Liste (nach Relevanz sortiert). " +
-        "Wähle einen Treffer und klicke „Details / Paraphrase…“, um zu sehen, " +
-        "warum er gefunden wurde.",
+        "Doppelklick auf einen Treffer (oder „Details / Paraphrase…“) zeigt, " +
+        "warum er gefunden wurde, und öffnet ihn in Zotero.",
     );
   } catch (e) {
-    pw.changeLine({ text: "Analyse fehlgeschlagen.", progress: 100 });
-    pw.startCloseTimer(2000);
-    mainWindow().alert(`Analyse fehlgeschlagen:\n${e}`);
+    prog.close();
+    notify(`Analyse fehlgeschlagen:\n${e}`);
   }
 }
 
@@ -106,7 +98,7 @@ function openItemInZotero(libraryID: number, itemKey: string): void {
   const Z = Zotero as any;
   const item = Z.Items.getByLibraryAndKey(libraryID, itemKey);
   if (!item) {
-    mainWindow().alert(
+    notify(
       "Der zugehörige Eintrag wurde nicht gefunden (evtl. gelöscht oder " +
         "anderes Profil).",
     );
@@ -120,7 +112,7 @@ function openItemInZotero(libraryID: number, itemKey: string): void {
     const win = Z.getMainWindow?.();
     win?.focus?.();
   } catch (e) {
-    mainWindow().alert(`Konnte den Eintrag nicht öffnen:\n${e}`);
+    notify(`Konnte den Eintrag nicht öffnen:\n${e}`);
   }
 }
 
@@ -144,9 +136,7 @@ async function batchEvaluate(
   const findings = await pm.listFindings(projectId);
   if (findings.length === 0) return;
 
-  const pw = new ProgressWindowHelper("Zotero Literature Review — KI");
-  pw.createLine({ text: `KI-Bewertung 0/${findings.length} …`, progress: 0 });
-  pw.show();
+  const prog = openProgressWindow("KI-Bewertung der Treffer");
 
   let done = 0;
   let errors = 0;
@@ -168,17 +158,10 @@ async function batchEvaluate(
       Zotero.debug(`[zotero-lit-rev] batch eval error: ${e}`);
     }
     done++;
-    pw.changeLine({
-      text: `KI-Bewertung ${done}/${findings.length} …`,
-      progress: Math.round((done / findings.length) * 100),
-    });
+    void prog.set(done, findings.length, `Bewerte ${done}/${findings.length} Treffer`);
   }
-  pw.changeLine({
-    text: `Fertig: ${done - errors} bewertet${errors ? `, ${errors} Fehler` : ""}.`,
-    progress: 100,
-  });
-  pw.startCloseTimer(4000);
-  mainWindow().alert(
+  prog.close();
+  notify(
     `KI-Bewertung abgeschlossen.\n\n${done - errors} von ${findings.length} ` +
       `Fundstelle(n) bewertet${errors ? `, ${errors} Fehler` : ""}.\n\n` +
       "Der KI-Score erscheint in der Trefferliste (z. B. „KI:87“).",
@@ -190,9 +173,7 @@ async function batchCode(pm: ProjectManager, projectId: string): Promise<void> {
   const findings = await pm.listFindings(projectId);
   if (findings.length === 0) return;
 
-  const pw = new ProgressWindowHelper("Zotero Literature Review — KI");
-  pw.createLine({ text: `Kodierung 0/${findings.length} …`, progress: 0 });
-  pw.show();
+  const prog = openProgressWindow("KI-Kodierung der Treffer");
 
   let done = 0;
   let errors = 0;
@@ -210,17 +191,10 @@ async function batchCode(pm: ProjectManager, projectId: string): Promise<void> {
       Zotero.debug(`[zotero-lit-rev] batch code error: ${e}`);
     }
     done++;
-    pw.changeLine({
-      text: `Kodierung ${done}/${findings.length} …`,
-      progress: Math.round((done / findings.length) * 100),
-    });
+    void prog.set(done, findings.length, `Kodiere ${done}/${findings.length} Treffer`);
   }
-  pw.changeLine({
-    text: `Fertig: ${done - errors} kodiert${errors ? `, ${errors} Fehler` : ""}. Bitte prüfen.`,
-    progress: 100,
-  });
-  pw.startCloseTimer(4000);
-  mainWindow().alert(
+  prog.close();
+  notify(
     `KI-Kodierung abgeschlossen.\n\n${done - errors} von ${findings.length} ` +
       `Fundstelle(n) kodiert${errors ? `, ${errors} Fehler` : ""}.\n\n` +
       "Die Farbkategorie erscheint in der Liste (z. B. ‹Grün›). Prüfe/ändere " +
@@ -397,7 +371,7 @@ async function openFindingDetail(
           if (el)
             el.textContent = `KI-Relevanz: ${r.score}/100 (${r.recommendation}) — ${r.explanation}`;
         } catch (e) {
-          mainWindow().alert(`KI-Bewertung fehlgeschlagen:\n${e}`);
+          notify(`KI-Bewertung fehlgeschlagen:\n${e}`);
         }
       },
     })
@@ -415,7 +389,7 @@ async function openFindingDetail(
           data.paraphrase = text;
           data.__aiParaphrase = { model };
         } catch (e) {
-          mainWindow().alert(`KI-Paraphrase fehlgeschlagen:\n${e}`);
+          notify(`KI-Paraphrase fehlgeschlagen:\n${e}`);
         }
       },
     })
@@ -430,11 +404,11 @@ async function openFindingDetail(
           if (sel) sel.value = r.codeId;
           data.code = r.codeId;
           data.__aiCode = { rationale: r.rationale };
-          mainWindow().alert(
+          notify(
             `KI-Vorschlag: ${codeLabel(r.codeId)}\n${r.rationale}`,
           );
         } catch (e) {
-          mainWindow().alert(`KI-Kodierung fehlgeschlagen:\n${e}`);
+          notify(`KI-Kodierung fehlgeschlagen:\n${e}`);
         }
       },
     })
@@ -554,6 +528,15 @@ export async function openResults(
       attributes: { "data-bind": "selected", "data-prop": "value", size: "16" },
       styles: { width: "460px", fontFamily: "monospace", fontSize: "12px" },
       children: optionChildren as any,
+      listeners: [
+        {
+          type: "dblclick",
+          listener: async () => {
+            const f = await selectedFinding();
+            if (f) await openFindingDetail(pm, projectId, f);
+          },
+        },
+      ],
     })
     .addCell(1, 1, actionColumn([
       { heading: "Analyse" },
@@ -595,10 +578,10 @@ export async function openResults(
               reviewStatus: "accepted",
               noteKey,
             });
-            mainWindow().alert("Fundstelle als Notiz am Eintrag gespeichert.");
+            notify("Fundstelle als Notiz am Eintrag gespeichert.");
             reopen();
           } else {
-            mainWindow().alert(
+            notify(
               "Konnte den zugehörigen Eintrag nicht finden (evtl. anderes Profil).",
             );
           }
@@ -623,7 +606,7 @@ export async function openResults(
           "Lässt die KI jede Fundstelle nach Relevanz bewerten (Score + Empfehlung + Begründung).",
         onClick: async () => {
           if (!isAIReady()) {
-            mainWindow().alert(
+            notify(
               "KI ist nicht konfiguriert. Bitte zuerst „KI-Einstellungen…“.",
             );
             return;
@@ -643,7 +626,7 @@ export async function openResults(
           "Ordnet jede Fundstelle per KI einer Farbkategorie zu (Vorschlag, prüfbar).",
         onClick: async () => {
           if (!isAIReady()) {
-            mainWindow().alert(
+            notify(
               "KI ist nicht konfiguriert. Bitte zuerst „KI-Einstellungen…“.",
             );
             return;
@@ -668,13 +651,13 @@ export async function openResults(
             (f) => f.codeId && f.codeStatus !== "rejected",
           ).length;
           if (coded === 0) {
-            mainWindow().alert(
+            notify(
               "Keine Kodierungen vorhanden. Bitte zuerst kodieren (KI oder manuell).",
             );
             return;
           }
           if (
-            !mainWindow().confirm(
+            !confirmDialog(
               `${coded} kodierte Fundstelle(n) als farbige Zotero-Tags an den Einträgen übernehmen?`,
             )
           ) {
@@ -682,11 +665,11 @@ export async function openResults(
           }
           try {
             const res = await applyCodeTags(p, false);
-            mainWindow().alert(
+            notify(
               `${res.tagsAdded} Tag(s) an ${res.itemsTagged} Eintrag/Einträgen gesetzt.`,
             );
           } catch (e) {
-            mainWindow().alert(`Fehler beim Setzen der Tags:\n${e}`);
+            notify(`Fehler beim Setzen der Tags:\n${e}`);
           }
         },
       },
@@ -698,7 +681,7 @@ export async function openResults(
           const p = await pm.get(projectId);
           if (!p) return;
           const path = await exportFindings(p, "csv");
-          if (path) mainWindow().alert(`CSV exportiert:\n${path}`);
+          if (path) notify(`CSV exportiert:\n${path}`);
         },
       },
       {
@@ -708,7 +691,7 @@ export async function openResults(
           const p = await pm.get(projectId);
           if (!p) return;
           const path = await exportFindings(p, "json");
-          if (path) mainWindow().alert(`JSON exportiert:\n${path}`);
+          if (path) notify(`JSON exportiert:\n${path}`);
         },
       },
       {

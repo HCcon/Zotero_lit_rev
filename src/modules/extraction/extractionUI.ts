@@ -1,4 +1,5 @@
-import { DialogHelper, ProgressWindowHelper } from "zotero-plugin-toolkit";
+import { DialogHelper } from "zotero-plugin-toolkit";
+import { notify, openProgressWindow } from "../ui/notify";
 import { ProjectManager } from "../projects/projectManager";
 import { EXTRACTION_FIELDS, NOT_REPORTED } from "./extraction";
 import { extractStudy } from "../ai/aiService";
@@ -129,15 +130,12 @@ async function batchExtract(
 ): Promise<void> {
   const items = includedItems(project);
   if (items.length === 0) {
-    mainWindow().alert(
+    notify(
       "Keine eingeschlossenen Einträge. Bitte zuerst im Screening Einträge einschließen.",
     );
     return;
   }
-  const pw = new ProgressWindowHelper("Zotero Literature Review — Extraktion");
-  pw.createLine({ text: `Extraktion 0/${items.length} …`, progress: 0 });
-  pw.show();
-
+  const prog = openProgressWindow("Extraktion der Studien");
   let done = 0;
   let errors = 0;
   for (const rec of items) {
@@ -148,17 +146,10 @@ async function batchExtract(
       Zotero.debug(`[zotero-lit-rev] extract error: ${e}`);
     }
     done++;
-    pw.changeLine({
-      text: `Extraktion ${done}/${items.length} …`,
-      progress: Math.round((done / items.length) * 100),
-    });
+    void prog.set(done, items.length, `Extrahiere ${done}/${items.length} Studie(n)`);
   }
-  pw.changeLine({
-    text: `Fertig: ${done - errors} extrahiert${errors ? `, ${errors} Fehler` : ""}.`,
-    progress: 100,
-  });
-  pw.startCloseTimer(4000);
-  mainWindow().alert(
+  prog.close();
+  notify(
     `Extraktion abgeschlossen.\n\n${done - errors} von ${items.length} ` +
       `Studie(n) extrahiert${errors ? `, ${errors} Fehler` : ""}.\n\n` +
       "Prüfe die Felder mit „Bearbeiten…“ und exportiere sie über " +
@@ -263,15 +254,15 @@ export async function openExtraction(
           const rec = selectedRec();
           if (!rec) return;
           if (!isAIReady()) {
-            mainWindow().alert("KI ist nicht konfiguriert (KI-Einstellungen…).");
+            notify("KI ist nicht konfiguriert (KI-Einstellungen…).");
             return;
           }
           try {
             await runExtraction(pm, project, rec);
-            mainWindow().alert("Extraktion erstellt (bitte prüfen).");
+            notify("Extraktion erstellt (bitte prüfen).");
             reopen();
           } catch (e) {
-            mainWindow().alert(`Extraktion fehlgeschlagen:\n${e}`);
+            notify(`Extraktion fehlgeschlagen:\n${e}`);
           }
         },
       },
@@ -288,7 +279,7 @@ export async function openExtraction(
         title: "KI-Extraktion für alle eingeschlossenen Studien nacheinander.",
         onClick: async () => {
           if (!isAIReady()) {
-            mainWindow().alert("KI ist nicht konfiguriert (KI-Einstellungen…).");
+            notify("KI ist nicht konfiguriert (KI-Einstellungen…).");
             return;
           }
           try {
@@ -308,7 +299,7 @@ export async function openExtraction(
           const p = await pm.get(projectId);
           if (p) {
             const path = await exportExtractionTable(p);
-            if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+            if (path) notify(`Gespeichert:\n${path}`);
           }
         },
       },

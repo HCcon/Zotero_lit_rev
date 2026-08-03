@@ -1,4 +1,5 @@
 import { DialogHelper } from "zotero-plugin-toolkit";
+import { confirmDialog, notify } from "../ui/notify";
 import {
   ProjectManager,
   type ConceptInput,
@@ -169,7 +170,7 @@ async function openConceptForm(
   }
   const name = String(data.name ?? "").trim();
   if (!name) {
-    mainWindow().alert("Bitte einen Namen für das Suchkonzept eingeben.");
+    notify("Bitte einen Namen für das Suchkonzept eingeben.");
     return null;
   }
 
@@ -276,7 +277,7 @@ export async function openConceptManager(
         const existing = await pm.getConcept(projectId, id);
         if (!existing) return;
         if (
-          mainWindow().confirm(`Suchkonzept „${existing.name}" wirklich löschen?`)
+          confirmDialog(`Suchkonzept „${existing.name}" wirklich löschen?`)
         ) {
           await pm.removeConcept(projectId, id);
           reopen();

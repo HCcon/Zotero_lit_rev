@@ -1,4 +1,5 @@
 import { DialogHelper, ProgressWindowHelper } from "zotero-plugin-toolkit";
+import { notify } from "../ui/notify";
 import { ProjectManager } from "../projects/projectManager";
 import { synthesize } from "../ai/aiService";
 import { isAIReady } from "../ai/aiConfig";
@@ -111,7 +112,7 @@ export async function openSynthesis(
         variant: "primary",
         onClick: async () => {
           if (!isAIReady()) {
-            mainWindow().alert("KI ist nicht konfiguriert (KI-Einstellungen…).");
+            notify("KI ist nicht konfiguriert (KI-Einstellungen…).");
             return;
           }
           try {
@@ -130,7 +131,7 @@ export async function openSynthesis(
           } catch (e) {
             pw.changeLine({ text: "Fehlgeschlagen.", progress: 100 });
             pw.startCloseTimer(2000);
-            mainWindow().alert(`Synthese fehlgeschlagen:\n${e}`);
+            notify(`Synthese fehlgeschlagen:\n${e}`);
           }
           void openSynthesis(pm, projectId);
         },
@@ -141,11 +142,11 @@ export async function openSynthesis(
         onClick: async () => {
           const p = await pm.get(projectId);
           if (!p?.synthesis) {
-            mainWindow().alert("Noch keine Synthese vorhanden.");
+            notify("Noch keine Synthese vorhanden.");
             return;
           }
           const path = await exportSynthesis(p);
-          if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+          if (path) notify(`Gespeichert:\n${path}`);
         },
       },
       {

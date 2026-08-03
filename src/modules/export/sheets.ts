@@ -1,4 +1,5 @@
 import { FilePickerHelper } from "zotero-plugin-toolkit";
+import { notify } from "../ui/notify";
 import { getItemTextByKey } from "../search/searchEngine";
 import { codeLabel } from "../coding/codes";
 import {
@@ -7,6 +8,7 @@ import {
 } from "../screening/screening";
 import { EXTRACTION_FIELDS } from "../extraction/extraction";
 import { activeCriteria, ratingLabel, qualityScore } from "../quality/quality";
+import { wordDoc } from "./reports";
 import { type Project, type ScreeningRecord } from "../types";
 
 /**
@@ -117,16 +119,17 @@ function sanitize(name: string): string {
   return name.replace(/[^a-zA-Z0-9-_]+/g, "_").slice(0, 40) || "projekt";
 }
 
-export async function exportAssessmentSheets(
+/** Builds the sheets body + full HTML document. Returns null if none included. */
+async function buildSheets(
   project: Project,
-): Promise<string | null> {
+): Promise<{ body: string; html: string } | null> {
   const libraryID =
     project.sources?.libraryID ?? (Zotero as any).Libraries.userLibraryID;
   const included = (project.screening ?? []).filter(
     (r) => r.decision === "included" && !r.isDuplicate,
   );
   if (included.length === 0) {
-    (Zotero.getMainWindow() as any).alert(
+    notify(
       "Keine eingeschlossenen Studien. Bitte zuerst im Screening Studien einschließen.",
     );
     return null;
@@ -137,22 +140,55 @@ export async function exportAssessmentSheets(
     sections.push(await studySection(project, rec, libraryID));
   }
 
+  const header = `<h1 style="border:none">Bewertungssheets — ${esc(project.name)}</h1>
+<div class="meta">Forschungsfrage: ${esc(project.researchQuestion || "(nicht angegeben)")}<br/>
+${included.length} eingeschlossene Studie(n) · erstellt ${new Date().toLocaleString()}</div>`;
+  const body = `${header}\n${sections.join("\n")}`;
   const html = `<!doctype html><html lang="de"><head><meta charset="utf-8">
 <title>Bewertungssheets — ${esc(project.name)}</title><style>${CSS}</style></head>
-<body>
-<h1 style="border:none">Bewertungssheets — ${esc(project.name)}</h1>
-<div class="meta">Forschungsfrage: ${esc(project.researchQuestion || "(nicht angegeben)")}<br/>
-${included.length} eingeschlossene Studie(n) · erstellt ${new Date().toLocaleString()}</div>
-${sections.join("\n")}
-</body></html>`;
+<body>${body}</body></html>`;
+  return { body, html };
+}
 
+async function savePicker(
+  title: string,
+  filter: [string, string],
+  suggestion: string,
+  content: string,
+): Promise<string | null> {
   const path = await new FilePickerHelper(
-    "Bewertungssheets als HTML",
+    title,
     "save",
-    [["HTML", "*.html"]],
-    `${sanitize(project.name)}-bewertungssheets.html`,
+    [filter],
+    suggestion,
   ).open();
   if (!path) return null;
-  await IOUtils.writeUTF8(path, html);
+  await IOUtils.writeUTF8(path, content);
   return path;
+}
+
+export async function exportAssessmentSheets(
+  project: Project,
+): Promise<string | null> {
+  const built = await buildSheets(project);
+  if (!built) return null;
+  return savePicker(
+    "Bewertungssheets als HTML",
+    ["HTML", "*.html"],
+    `${sanitize(project.name)}-bewertungssheets.html`,
+    built.html,
+  );
+}
+
+export async function exportAssessmentSheetsWord(
+  project: Project,
+): Promise<string | null> {
+  const built = await buildSheets(project);
+  if (!built) return null;
+  return savePicker(
+    "Bewertungssheets als Word",
+    ["Word", "*.doc"],
+    `${sanitize(project.name)}-bewertungssheets.doc`,
+    wordDoc(`Bewertungssheets — ${project.name}`, built.body),
+  );
 }

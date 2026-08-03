@@ -1,4 +1,6 @@
-import { DialogHelper, ProgressWindowHelper } from "zotero-plugin-toolkit";
+import { DialogHelper } from "zotero-plugin-toolkit";
+import { openProgressWindow } from "../ui/notify";
+import { notify } from "../ui/notify";
 import { ProjectManager } from "../projects/projectManager";
 import {
   QUALITY_CRITERIA,
@@ -145,14 +147,12 @@ async function openQualityForm(
 async function batchQuality(pm: ProjectManager, project: Project): Promise<void> {
   const items = includedItems(project);
   if (items.length === 0) {
-    mainWindow().alert(
+    notify(
       "Keine eingeschlossenen Einträge. Bitte zuerst im Screening einschließen.",
     );
     return;
   }
-  const pw = new ProgressWindowHelper("Zotero Literature Review — Qualität");
-  pw.createLine({ text: `Bewertung 0/${items.length} …`, progress: 0 });
-  pw.show();
+  const prog = openProgressWindow("Qualitätsbewertung der Studien");
   let done = 0;
   let errors = 0;
   for (const rec of items) {
@@ -163,17 +163,10 @@ async function batchQuality(pm: ProjectManager, project: Project): Promise<void>
       Zotero.debug(`[zotero-lit-rev] quality error: ${e}`);
     }
     done++;
-    pw.changeLine({
-      text: `Bewertung ${done}/${items.length} …`,
-      progress: Math.round((done / items.length) * 100),
-    });
+    void prog.set(done, items.length, `Bewerte ${done}/${items.length} Studie(n)`);
   }
-  pw.changeLine({
-    text: `Fertig: ${done - errors} bewertet${errors ? `, ${errors} Fehler` : ""}.`,
-    progress: 100,
-  });
-  pw.startCloseTimer(4000);
-  mainWindow().alert(
+  prog.close();
+  notify(
     `Qualitätsbewertung abgeschlossen.\n\n${done - errors} von ${items.length} ` +
       `Studie(n) bewertet${errors ? `, ${errors} Fehler` : ""}.\n\n` +
       "Prüfe/bestätige die Kriterien mit „Bearbeiten…“ und exportiere die " +
@@ -238,7 +231,7 @@ async function openCriteriaDialog(
     (c) => (doc.getElementById(`crit-${c.id}`) as HTMLInputElement | null)?.checked,
   ).map((c) => c.id);
   if (ids.length === 0) {
-    mainWindow().alert("Mindestens ein Kriterium muss aktiv bleiben.");
+    notify("Mindestens ein Kriterium muss aktiv bleiben.");
     return false;
   }
   await pm.setQualityCriteria(project.projectId, ids);
@@ -347,15 +340,15 @@ export async function openQuality(
           const rec = selectedRec();
           if (!rec) return;
           if (!isAIReady()) {
-            mainWindow().alert("KI ist nicht konfiguriert (KI-Einstellungen…).");
+            notify("KI ist nicht konfiguriert (KI-Einstellungen…).");
             return;
           }
           try {
             await runQuality(pm, project, rec);
-            mainWindow().alert("Qualitätsbewertung erstellt (bitte prüfen).");
+            notify("Qualitätsbewertung erstellt (bitte prüfen).");
             reopen();
           } catch (e) {
-            mainWindow().alert(`Bewertung fehlgeschlagen:\n${e}`);
+            notify(`Bewertung fehlgeschlagen:\n${e}`);
           }
         },
       },
@@ -381,7 +374,7 @@ export async function openQuality(
         title: "Qualitätsbewertung per KI für alle eingeschlossenen Studien.",
         onClick: async () => {
           if (!isAIReady()) {
-            mainWindow().alert("KI ist nicht konfiguriert (KI-Einstellungen…).");
+            notify("KI ist nicht konfiguriert (KI-Einstellungen…).");
             return;
           }
           try {
@@ -401,7 +394,7 @@ export async function openQuality(
           const p = await pm.get(projectId);
           if (p) {
             const path = await exportQualityMatrix(p);
-            if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+            if (path) notify(`Gespeichert:\n${path}`);
           }
         },
       },

@@ -1,4 +1,5 @@
 import { DialogHelper } from "zotero-plugin-toolkit";
+import { confirmDialog, notify } from "../ui/notify";
 import {
   ProjectManager,
   REVIEW_TYPES,
@@ -156,7 +157,7 @@ async function openProjectForm(existing?: Project): Promise<ProjectInput | null>
   }
   const name = String(data.name ?? "").trim();
   if (!name) {
-    mainWindow().alert("Bitte einen Titel eingeben.");
+    notify("Bitte einen Titel eingeben.");
     return null;
   }
 
@@ -224,7 +225,7 @@ export async function openProjectManager(pm: ProjectManager): Promise<void> {
   const withProject = async (fn: (id: string) => void | Promise<void>) => {
     const id = sel();
     if (!id) {
-      mainWindow().alert("Bitte zuerst ein Projekt auswählen.");
+      notify("Bitte zuerst ein Projekt auswählen.");
       return;
     }
     await fn(id);
@@ -302,7 +303,7 @@ export async function openProjectManager(pm: ProjectManager): Promise<void> {
             const existing = await pm.get(id);
             if (!existing) return;
             if (
-              mainWindow().confirm(`Projekt „${existing.name}" wirklich löschen?`)
+              confirmDialog(`Projekt „${existing.name}" wirklich löschen?`)
             ) {
               await pm.remove(id);
               reopen();

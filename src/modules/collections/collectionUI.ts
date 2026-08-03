@@ -1,4 +1,5 @@
 import { DialogHelper } from "zotero-plugin-toolkit";
+import { notify } from "../ui/notify";
 import { ProjectManager } from "../projects/projectManager";
 
 /**
@@ -267,7 +268,7 @@ export async function openCollectionSelector(
           includeSubcollections: includeSub,
           onlyWithPDF: withPdf,
         });
-        mainWindow().alert(
+        notify(
           `${keys.length} Sammlung(en) dem Projekt zugeordnet.`,
         );
         try {

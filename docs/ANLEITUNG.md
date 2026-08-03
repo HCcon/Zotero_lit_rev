@@ -14,9 +14,9 @@ Der Ablauf ist **sequentiell** – du stößt jeden Schritt einzeln an. Jeder Bu
 
 1. **Sammlungen** — welche Zotero-Ordner durchsucht werden.
 2. **Suchkonzepte** — Keywords, Synonyme, Kontext, Ausschlussbegriffe, +/– Beispiele.
-3. **Analyse & Treffer** — „Analyse starten“ durchsucht die PDFs → Trefferliste.
+3. **Analyse & Treffer** — „Analyse starten“ durchsucht die PDFs → Trefferliste. Während Analyse/KI-Läufen erscheint ein **Fortschrittsbalken**, der bis zum Ende sichtbar bleibt; danach eine Abschlussmeldung.
    - `[Zahl]` = lokaler Score · `KI:xx` = KI-Relevanz · `‹Farbe›` = Kodierung.
-   - **Details / Paraphrase…**: Warum ein Treffer gefunden wurde (getroffene Begriffe, Fundort/Abschnitt), **Eintrag in Zotero öffnen**, Paraphrase, Kodierung; per Treffer KI-Bewertung/-Paraphrase/-Kodierung.
+   - **Doppelklick** auf einen Treffer (oder **Details / Paraphrase…**) öffnet: warum der Treffer gefunden wurde (Begriffe, Fundort/Abschnitt), **Eintrag in Zotero öffnen**, Paraphrase, Kodierung; per Treffer KI-Bewertung/-Paraphrase/-Kodierung.
    - **Als Notiz übernehmen**: erzeugt am Zotero-Eintrag eine strukturierte Notiz (Original + Begründung + Paraphrase).
    - **KI: alle bewerten / alle kodieren**: Stapelverarbeitung mit Fortschritt + Abschlussmeldung.
    - **Kodierung → Zotero-Tags**: setzt farbige Tags je Kategorie an den Einträgen.
@@ -26,8 +26,9 @@ Der Ablauf ist **sequentiell** – du stößt jeden Schritt einzeln an. Jeder Bu
 6. **Qualität** — Risk of Bias je Studie; **Kriterien…** ein-/ausschaltbar. Export: Qualitätsmatrix (CSV).
 7. **Synthese** — studienübergreifende Erkenntnisse, Widersprüche, Forschungslücken, neue Fragen (KI). Export: Markdown.
 
-## Bewertungssheet (pro Studie)
-**Screening → „Bewertungssheets (HTML)“** erzeugt eine HTML-Datei mit **einem Blatt je eingeschlossener Studie**: Bibliografie, **Abstract**, Screening-Entscheidung + Begründung, relevante **Fundstellen** (mit Begründung, Kodierung, Paraphrase, KI-Score), **Extraktion** und **Qualität**. Im Browser öffnen/drucken.
+## Bewertungssheet (pro Studie) & PRISMA
+**Screening → „Bewertungssheets (HTML)“ bzw. „(Word)“** erzeugt ein Blatt je eingeschlossener Studie: Bibliografie, **Abstract**, Screening-Entscheidung + Begründung, relevante **Fundstellen** (mit Begründung, Kodierung, Paraphrase, KI-Score), **Extraktion** und **Qualität**. HTML im Browser öffnen/drucken; Word (.doc) zum Weiterbearbeiten.
+**PRISMA** gibt es als **SVG-Bild** und als **Word-Dokument** (bearbeitbar).
 
 ## Grundsätze
 - **Nichtdestruktiv**: bestehende Zotero-Daten werden nicht verändert; Notizen/Tags nur auf deine Aktion, jederzeit entfernbar.

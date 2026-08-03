@@ -1,4 +1,5 @@
 import { DialogHelper } from "zotero-plugin-toolkit";
+import { notify } from "../ui/notify";
 import { ProjectManager } from "../projects/projectManager";
 import {
   EXCLUSION_REASONS,
@@ -8,9 +9,13 @@ import {
   exportEvidence,
   exportPrisma,
   exportPrismaSVG,
+  exportPrismaWord,
   exportScreening,
 } from "../export/reports";
-import { exportAssessmentSheets } from "../export/sheets";
+import {
+  exportAssessmentSheets,
+  exportAssessmentSheetsWord,
+} from "../export/sheets";
 import { actionColumn } from "../ui/dialogParts";
 import { type ScreeningDecision, type ScreeningRecord } from "../types";
 
@@ -250,7 +255,7 @@ export async function openScreening(
         title: "Mögliche Dubletten über DOI bzw. Titel + Jahr erkennen und markieren.",
         onClick: async () => {
           const n = await pm.runDuplicateDetection(projectId);
-          mainWindow().alert(`${n} mögliche Dublette(n) markiert.`);
+          notify(`${n} mögliche Dublette(n) markiert.`);
           reopen();
         },
       },
@@ -258,7 +263,7 @@ export async function openScreening(
         label: "PRISMA…",
         title: "Aktuelle PRISMA-Kennzahlen anzeigen (identifiziert, eingeschlossen …).",
         onClick: async () => {
-          mainWindow().alert(prismaText(await pm.listScreening(projectId)));
+          notify(prismaText(await pm.listScreening(projectId)));
         },
       },
       {
@@ -266,7 +271,7 @@ export async function openScreening(
         title: "Einträge aus den zugeordneten Sammlungen (neu) übernehmen.",
         onClick: async () => {
           const n = await pm.syncScreening(projectId);
-          mainWindow().alert(`${n} Einträge aus den Sammlungen übernommen.`);
+          notify(`${n} Einträge aus den Sammlungen übernommen.`);
           reopen();
         },
       },
@@ -278,7 +283,7 @@ export async function openScreening(
           const p = await pm.get(projectId);
           if (p) {
             const path = await exportScreening(p);
-            if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+            if (path) notify(`Gespeichert:\n${path}`);
           }
         },
       },
@@ -290,7 +295,7 @@ export async function openScreening(
           const p = await pm.get(projectId);
           if (p) {
             const path = await exportEvidence(p);
-            if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+            if (path) notify(`Gespeichert:\n${path}`);
           }
         },
       },
@@ -301,7 +306,7 @@ export async function openScreening(
           const p = await pm.get(projectId);
           if (p) {
             const path = await exportPrisma(p);
-            if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+            if (path) notify(`Gespeichert:\n${path}`);
           }
         },
       },
@@ -313,7 +318,18 @@ export async function openScreening(
           const p = await pm.get(projectId);
           if (p) {
             const path = await exportPrismaSVG(p);
-            if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+            if (path) notify(`PRISMA-Diagramm (SVG) gespeichert:\n${path}`);
+          }
+        },
+      },
+      {
+        label: "PRISMA-Diagramm (Word)",
+        title: "PRISMA-Flussdiagramm als bearbeitbares Word-Dokument (.doc).",
+        onClick: async () => {
+          const p = await pm.get(projectId);
+          if (p) {
+            const path = await exportPrismaWord(p);
+            if (path) notify(`PRISMA-Diagramm (Word) gespeichert:\n${path}`);
           }
         },
       },
@@ -326,7 +342,20 @@ export async function openScreening(
           const p = await pm.get(projectId);
           if (p) {
             const path = await exportAssessmentSheets(p);
-            if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+            if (path) notify(`Bewertungssheets (HTML) gespeichert:\n${path}`);
+          }
+        },
+      },
+      {
+        label: "Bewertungssheets (Word)",
+        title:
+          "Dasselbe Bewertungssheet als bearbeitbares Word-Dokument (.doc).",
+        variant: "primary",
+        onClick: async () => {
+          const p = await pm.get(projectId);
+          if (p) {
+            const path = await exportAssessmentSheetsWord(p);
+            if (path) notify(`Bewertungssheets (Word) gespeichert:\n${path}`);
           }
         },
       },

@@ -28,9 +28,23 @@ function sanitize(name: string): string {
   return name.replace(/[^a-zA-Z0-9-_]+/g, "_").slice(0, 40) || "projekt";
 }
 
+/** Wraps body HTML in a Word-openable HTML document (.doc). */
+export function wordDoc(title: string, bodyHtml: string): string {
+  return (
+    `<html xmlns:o="urn:schemas-microsoft-com:office:office" ` +
+    `xmlns:w="urn:schemas-microsoft-com:office:word" ` +
+    `xmlns="http://www.w3.org/1999/xhtml"><head><meta charset="utf-8">` +
+    `<title>${escXml(title)}</title>` +
+    `<style>body{font-family:Calibri,Arial,sans-serif;font-size:11pt;color:#222;} ` +
+    `h1{font-size:16pt;} h2{font-size:13pt;color:#2b4a75;} ` +
+    `table{border-collapse:collapse;width:100%;} td,th{border:1px solid #999;padding:4px 8px;vertical-align:top;} ` +
+    `th{background:#f0f4fa;}</style></head><body>${bodyHtml}</body></html>`
+  );
+}
+
 async function saveWithPicker(
   title: string,
-  ext: "csv" | "md" | "svg" | "html",
+  ext: "csv" | "md" | "svg" | "html" | "doc",
   suggestion: string,
   content: string,
 ): Promise<string | null> {
@@ -175,6 +189,54 @@ function escXml(s: string): string {
     .replace(/&/g, "&amp;")
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;");
+}
+
+/** PRISMA flow as an editable Word (.doc) document (box table + arrows). */
+export async function exportPrismaWord(
+  project: Project,
+): Promise<string | null> {
+  const c = prismaCounts(project.screening ?? []);
+  const reasons = c.exclusionByReason
+    .map((e) => `${escXml(e.reason)}: ${e.count}`)
+    .join("<br/>");
+  const box = (title: string, sub: string, fill = "#eef3fb") =>
+    `<table style="width:60%;margin:0 auto;"><tr><td style="background:${fill};text-align:center;">` +
+    `<b>${escXml(title)}</b><br/>${sub}</td></tr></table>`;
+  const arrow = `<p style="text-align:center;margin:4px 0;font-size:16pt;">↓</p>`;
+
+  const body = [
+    `<h1 style="text-align:center;">PRISMA — ${escXml(project.name)}</h1>`,
+    box("Identifizierte Datensätze", `n = ${c.identified}`),
+    arrow,
+    box(
+      "Nach Dublettenbereinigung",
+      `n = ${c.afterDuplicates} (entfernt: ${c.duplicatesRemoved})`,
+    ),
+    arrow,
+    box("Gescreent", `n = ${c.afterDuplicates}`),
+    arrow,
+    box(
+      "Ausgeschlossen",
+      `n = ${c.excluded}${reasons ? `<br/><span style="font-size:9pt">${reasons}</span>` : ""}`,
+      "#fdeeee",
+    ),
+    arrow,
+    box(
+      "Eingeschlossen",
+      `n = ${c.included} (vielleicht: ${c.maybe} · offen: ${c.undecided})`,
+      "#e7f6e7",
+    ),
+    `<p style="text-align:center;color:gray;font-size:9pt;">Erstellt: ${new Date()
+      .toISOString()
+      .slice(0, 10)} · Zotero Literature Review</p>`,
+  ].join("\n");
+
+  return saveWithPicker(
+    "PRISMA-Diagramm als Word",
+    "doc",
+    `${sanitize(project.name)}-prisma.doc`,
+    wordDoc(`PRISMA — ${project.name}`, body),
+  );
 }
 
 // --- Evidence table -------------------------------------------------------

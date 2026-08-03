@@ -1,4 +1,5 @@
 import { DialogHelper } from "zotero-plugin-toolkit";
+import { notify } from "../ui/notify";
 import { getAIConfig, saveAIConfig, type AIProvider } from "./aiConfig";
 import { aiTest } from "./aiClient";
 
@@ -179,9 +180,9 @@ export async function openAISettings(): Promise<void> {
         persist(data);
         try {
           const answer = await aiTest();
-          mainWindow().alert(`Verbindung OK. Antwort: ${answer}`);
+          notify(`Verbindung OK. Antwort: ${answer}`);
         } catch (e) {
-          mainWindow().alert(`Test fehlgeschlagen:\n${e}`);
+          notify(`Test fehlgeschlagen:\n${e}`);
         }
       },
     })
