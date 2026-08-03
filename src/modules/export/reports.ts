@@ -156,23 +156,27 @@ export async function exportPrismaSVG(
   const arrow = (x1: number, y1: number, x2: number, y2: number) =>
     `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#4a6fa5" stroke-width="1.5" marker-end="url(#a)"/>`;
 
-  const cx = 60;
-  const w = 340;
+  const cx = 40;
+  const w = 320;
+  const sx = cx + w + 60; // side-box x
+  const sw = 220; // side-box width
   const svg = [
-    `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="560" viewBox="0 0 640 560">`,
+    `<svg xmlns="http://www.w3.org/2000/svg" width="680" height="400" viewBox="0 0 680 400">`,
     `<defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#4a6fa5"/></marker></defs>`,
-    `<text x="320" y="28" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="bold">PRISMA — ${escXml(project.name)}</text>`,
+    `<text x="340" y="28" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="bold">PRISMA — ${escXml(project.name)}</text>`,
+    // Main column
     box(cx, 50, w, 46, [`Identifizierte Datensätze`, `n = ${c.identified}`]),
-    arrow(cx + w / 2, 96, cx + w / 2, 130),
-    box(cx, 130, w, 46, [`Nach Dublettenbereinigung`, `n = ${c.afterDuplicates}  (entfernt: ${c.duplicatesRemoved})`]),
-    arrow(cx + w / 2, 176, cx + w / 2, 210),
-    box(cx, 210, w, 46, [`Gescreent`, `n = ${c.afterDuplicates}`]),
-    arrow(cx + w / 2, 256, cx + w / 2, 290),
-    box(cx, 290, w, 66, [`Eingeschlossen`, `n = ${c.included}`, `(vielleicht: ${c.maybe} · offen: ${c.undecided})`], "#e7f6e7"),
-    // Exclusion side box
-    box(cx + w + 40, 210, 180, 90, [`Ausgeschlossen`, `n = ${c.excluded}`, ...(reasons ? [reasons] : [])], "#fdeeee"),
-    arrow(cx + w, 233, cx + w + 40, 233),
-    `<text x="320" y="380" text-anchor="middle" font-family="sans-serif" font-size="11" fill="gray">Erstellt: ${new Date().toISOString().slice(0, 10)} · Zotero Literature Review</text>`,
+    arrow(cx + w / 2, 96, cx + w / 2, 150),
+    box(cx, 150, w, 46, [`Gescreent (nach Dubletten)`, `n = ${c.afterDuplicates}`]),
+    arrow(cx + w / 2, 196, cx + w / 2, 250),
+    box(cx, 250, w, 66, [`Eingeschlossen`, `n = ${c.included}`, `(vielleicht: ${c.maybe} · offen: ${c.undecided})`], "#e7f6e7"),
+    // Side box: duplicates removed (at the identification → screening step)
+    arrow(cx + w, 118, sx, 118),
+    box(sx, 95, sw, 46, [`Vor Screening entfernt:`, `Dubletten  n = ${c.duplicatesRemoved}`], "#fdf4e7"),
+    // Side box: excluded during screening
+    arrow(cx + w, 218, sx, 218),
+    box(sx, 195, sw, 66, [`Ausgeschlossen  n = ${c.excluded}`, ...(reasons ? [reasons] : [])], "#fdeeee"),
+    `<text x="340" y="345" text-anchor="middle" font-family="sans-serif" font-size="11" fill="gray">Erstellt: ${new Date().toISOString().slice(0, 10)} · Zotero Literature Review</text>`,
     `</svg>`,
   ].join("\n");
 
@@ -209,14 +213,15 @@ export async function exportPrismaWord(
     box("Identifizierte Datensätze", `n = ${c.identified}`),
     arrow,
     box(
-      "Nach Dublettenbereinigung",
-      `n = ${c.afterDuplicates} (entfernt: ${c.duplicatesRemoved})`,
+      "Vor dem Screening entfernt: Dubletten",
+      `n = ${c.duplicatesRemoved}`,
+      "#fdf4e7",
     ),
     arrow,
-    box("Gescreent", `n = ${c.afterDuplicates}`),
+    box("Gescreent (nach Dubletten)", `n = ${c.afterDuplicates}`),
     arrow,
     box(
-      "Ausgeschlossen",
+      "Während Screening ausgeschlossen",
       `n = ${c.excluded}${reasons ? `<br/><span style="font-size:9pt">${reasons}</span>` : ""}`,
       "#fdeeee",
     ),
