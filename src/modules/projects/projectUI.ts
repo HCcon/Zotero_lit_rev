@@ -232,9 +232,27 @@ export async function openProjectManager(pm: ProjectManager): Promise<void> {
 
   dialog
     .addCell(0, 0, {
-      tag: "h2",
+      tag: "div",
       namespace: "html",
-      properties: { textContent: "Rechercheprojekte" },
+      children: [
+        {
+          tag: "h2",
+          namespace: "html",
+          styles: { margin: "0" },
+          properties: { textContent: "Rechercheprojekte" },
+        },
+        {
+          tag: "small",
+          namespace: "html",
+          styles: { color: "gray" },
+          properties: {
+            textContent:
+              "Ablauf (jeder Schritt wird einzeln gestartet): 1 Sammlungen → " +
+              "2 Suchkonzepte → 3 Analyse & Treffer → 4 Screening → 5 Extraktion → " +
+              "6 Qualität → 7 Synthese. Tooltip je Button erklärt den Schritt.",
+          },
+        },
+      ],
     })
     .addCell(1, 0, {
       tag: "select",
@@ -293,19 +311,19 @@ export async function openProjectManager(pm: ProjectManager): Promise<void> {
       },
       { heading: "Recherche vorbereiten" },
       {
-        label: "Sammlungen…",
+        label: "1 · Sammlungen…",
         title:
           "Zotero-Sammlungen (Ordner) auswählen, die durchsucht werden sollen.",
         onClick: () => withProject((id) => openCollectionSelector(pm, id)),
       },
       {
-        label: "Suchkonzepte…",
+        label: "2 · Suchkonzepte…",
         title:
           "Keywords, Synonyme, Kontextbeschreibung und Beispiele je Suchkonzept festlegen.",
         onClick: () => withProject((id) => openConceptManager(pm, id)),
       },
       {
-        label: "Analyse & Treffer…",
+        label: "3 · Analyse & Treffer…",
         title:
           "PDFs durchsuchen; Treffer prüfen, KI-Bewertung, Paraphrasen, Kodierung, Export.",
         variant: "primary",
@@ -313,25 +331,25 @@ export async function openProjectManager(pm: ProjectManager): Promise<void> {
       },
       { heading: "Systematisches Review" },
       {
-        label: "Screening…",
+        label: "4 · Screening…",
         title:
           "Studien ein-/ausschließen, Ausschlussgründe, Dublettenprüfung, PRISMA, Evidenztabelle.",
         onClick: () => withProject((id) => openScreening(pm, id)),
       },
       {
-        label: "Extraktion…",
+        label: "5 · Extraktion…",
         title:
           "Studienmerkmale strukturiert erfassen: Methode, Stichprobe, Ergebnisse, Limitationen …",
         onClick: () => withProject((id) => openExtraction(pm, id)),
       },
       {
-        label: "Qualität…",
+        label: "6 · Qualität…",
         title:
           "Methodische Qualität / Risk of Bias je Studie bewerten (10 Kriterien, Score).",
         onClick: () => withProject((id) => openQuality(pm, id)),
       },
       {
-        label: "Synthese…",
+        label: "7 · Synthese…",
         title:
           "Studienübergreifende Erkenntnisse, Widersprüche und Forschungslücken (KI).",
         onClick: () => withProject((id) => openSynthesis(pm, id)),

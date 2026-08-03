@@ -19,6 +19,8 @@ export interface AIConfig {
   apiKey: string;
   /** Max characters of a passage sent to the model (data minimisation). */
   maxChars: number;
+  /** Max response tokens (floor). Big enough for reasoning models. */
+  maxTokens: number;
 }
 
 const DEFAULTS: AIConfig = {
@@ -28,6 +30,7 @@ const DEFAULTS: AIConfig = {
   model: "claude-opus-5",
   apiKey: "",
   maxChars: 4000,
+  maxTokens: 4000,
 };
 
 function getPref<T>(key: string, fallback: T): T {
@@ -51,6 +54,7 @@ export function getAIConfig(): AIConfig {
     model: getPref("model", DEFAULTS.model),
     apiKey: getPref("apiKey", DEFAULTS.apiKey),
     maxChars: getPref("maxChars", DEFAULTS.maxChars),
+    maxTokens: getPref("maxTokens", DEFAULTS.maxTokens),
   };
 }
 

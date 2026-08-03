@@ -3,6 +3,8 @@
  * KI liefert Vorschläge; die finale Bewertung muss manuell bestätigt werden.
  */
 
+import { type Project } from "../types";
+
 export interface QualityCriterion {
   id: string;
   label: string;
@@ -36,14 +38,21 @@ export function ratingLabel(id: string | undefined): string {
   return RATINGS.find((r) => r.id === id)?.label ?? id;
 }
 
+/** Active (enabled) criteria for a project. Empty/undefined = all. */
+export function activeCriteria(project: Project): QualityCriterion[] {
+  const ids = project.qualityCriteria;
+  if (!ids || ids.length === 0) return QUALITY_CRITERIA;
+  return QUALITY_CRITERIA.filter((c) => ids.includes(c.id));
+}
+
 /** Simple quality score: fulfilled=1, partial=0.5, else 0 (over applicable). */
-export function qualityScore(ratings: Record<string, string>): {
-  score: number;
-  applicable: number;
-} {
+export function qualityScore(
+  ratings: Record<string, string>,
+  criteria: QualityCriterion[] = QUALITY_CRITERIA,
+): { score: number; applicable: number } {
   let sum = 0;
   let applicable = 0;
-  for (const c of QUALITY_CRITERIA) {
+  for (const c of criteria) {
     const r = ratings[c.id];
     if (!r || r === "na") continue;
     applicable++;

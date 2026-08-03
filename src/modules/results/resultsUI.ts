@@ -68,17 +68,30 @@ async function doAnalysis(
   pw.createLine({ text: `Analysiere 0/${total} …`, progress: 0 });
   pw.show();
 
-  const findings = await runAnalysis(project, (done, t) => {
-    const pct = t ? Math.round((done / t) * 100) : 100;
-    pw.changeLine({ text: `Analysiere ${done}/${t} …`, progress: pct });
-  });
+  try {
+    const findings = await runAnalysis(project, (done, t) => {
+      const pct = t ? Math.round((done / t) * 100) : 100;
+      pw.changeLine({ text: `Analysiere ${done}/${t} …`, progress: pct });
+    });
 
-  await pm.setFindings(projectId, findings);
-  pw.changeLine({
-    text: `Fertig: ${findings.length} Fundstelle(n).`,
-    progress: 100,
-  });
-  pw.startCloseTimer(3000);
+    await pm.setFindings(projectId, findings);
+    pw.changeLine({
+      text: `Fertig: ${findings.length} Fundstelle(n).`,
+      progress: 100,
+    });
+    pw.startCloseTimer(3000);
+    mainWindow().alert(
+      `Analyse abgeschlossen.\n\n${total} Eintrag/Einträge durchsucht, ` +
+        `${findings.length} Fundstelle(n) gefunden.\n\n` +
+        "Die Treffer stehen jetzt in der Liste (nach Relevanz sortiert). " +
+        "Wähle einen Treffer und klicke „Details / Paraphrase…“, um zu sehen, " +
+        "warum er gefunden wurde.",
+    );
+  } catch (e) {
+    pw.changeLine({ text: "Analyse fehlgeschlagen.", progress: 100 });
+    pw.startCloseTimer(2000);
+    mainWindow().alert(`Analyse fehlgeschlagen:\n${e}`);
+  }
 }
 
 function conceptOf(
@@ -86,6 +99,39 @@ function conceptOf(
   conceptId: string,
 ): Concept | undefined {
   return concepts?.find((c) => c.conceptId === conceptId);
+}
+
+/** Selects (and focuses) the finding's item in the Zotero library. */
+function openItemInZotero(libraryID: number, itemKey: string): void {
+  const Z = Zotero as any;
+  const item = Z.Items.getByLibraryAndKey(libraryID, itemKey);
+  if (!item) {
+    mainWindow().alert(
+      "Der zugehörige Eintrag wurde nicht gefunden (evtl. gelöscht oder " +
+        "anderes Profil).",
+    );
+    return;
+  }
+  try {
+    const pane = Z.getActiveZoteroPane?.();
+    if (pane?.selectItem) {
+      pane.selectItem(item.id);
+    }
+    const win = Z.getMainWindow?.();
+    win?.focus?.();
+  } catch (e) {
+    mainWindow().alert(`Konnte den Eintrag nicht öffnen:\n${e}`);
+  }
+}
+
+function locationLabel(f: Finding): string {
+  const loc =
+    f.location === "title"
+      ? "Titel"
+      : f.location === "abstract"
+        ? "Abstract"
+        : "Volltext";
+  return f.section ? `${loc} · Abschnitt: ${f.section}` : loc;
 }
 
 /** Phase 2 – KI-Bewertung aller Fundstellen nacheinander, mit Fortschritt. */
@@ -132,6 +178,11 @@ async function batchEvaluate(
     progress: 100,
   });
   pw.startCloseTimer(4000);
+  mainWindow().alert(
+    `KI-Bewertung abgeschlossen.\n\n${done - errors} von ${findings.length} ` +
+      `Fundstelle(n) bewertet${errors ? `, ${errors} Fehler` : ""}.\n\n` +
+      "Der KI-Score erscheint in der Trefferliste (z. B. „KI:87“).",
+  );
 }
 
 /** Phase 4 – KI-Kodierung aller Fundstellen als Vorschläge. */
@@ -169,6 +220,12 @@ async function batchCode(pm: ProjectManager, projectId: string): Promise<void> {
     progress: 100,
   });
   pw.startCloseTimer(4000);
+  mainWindow().alert(
+    `KI-Kodierung abgeschlossen.\n\n${done - errors} von ${findings.length} ` +
+      `Fundstelle(n) kodiert${errors ? `, ${errors} Fehler` : ""}.\n\n` +
+      "Die Farbkategorie erscheint in der Liste (z. B. ‹Grün›). Prüfe/ändere " +
+      "sie unter „Details…“ und übertrage sie mit „Kodierung → Zotero-Tags“.",
+  );
 }
 
 /** Detail-/Paraphrase-Dialog für eine Fundstelle. */
@@ -177,6 +234,9 @@ async function openFindingDetail(
   projectId: string,
   finding: Finding,
 ): Promise<void> {
+  const proj = await pm.get(projectId);
+  const libraryID =
+    proj?.sources?.libraryID ?? (Zotero as any).Libraries.userLibraryID;
   const data: Record<string, any> = {
     paraphrase: finding.paraphrase ?? "",
     code: finding.codeId ?? "",
@@ -195,14 +255,55 @@ async function openFindingDetail(
     })),
   ];
 
+  const itemMeta = `${[finding.itemCreator, finding.itemYear]
+    .filter(Boolean)
+    .join(" ")} — ${finding.itemTitle}`;
+
   const dialog = new DialogHelper(7, 1);
   dialog
     .addCell(0, 0, {
-      tag: "h3",
+      tag: "div",
       namespace: "html",
-      properties: {
-        textContent: `${finding.conceptName} — Score ${finding.score}`,
-      },
+      children: [
+        {
+          tag: "h3",
+          namespace: "html",
+          styles: { margin: "0" },
+          properties: {
+            textContent: `${finding.conceptName} — Score ${finding.score}`,
+          },
+        },
+        {
+          tag: "div",
+          namespace: "html",
+          styles: { fontSize: "12px", color: "gray", margin: "2px 0" },
+          properties: {
+            textContent: `Quelle: ${itemMeta}  ·  Fundort: ${locationLabel(finding)}`,
+          },
+        },
+        {
+          tag: "button",
+          namespace: "html",
+          attributes: {
+            type: "button",
+            title:
+              "Wählt das zugehörige Dokument in deiner Zotero-Bibliothek aus.",
+          },
+          styles: {
+            marginTop: "2px",
+            padding: "4px 10px",
+            cursor: "pointer",
+            borderRadius: "6px",
+          },
+          properties: { textContent: "📄 Eintrag in Zotero öffnen" },
+          listeners: [
+            {
+              type: "click",
+              listener: () => openItemInZotero(libraryID, finding.itemKey),
+            },
+          ],
+        },
+      ],
     })
     .addCell(1, 0, {
       tag: "div",
@@ -422,12 +523,25 @@ export async function openResults(
         {
           tag: "h2",
           namespace: "html",
+          styles: { margin: "0" },
           properties: { textContent: `Treffer — ${project.name}` },
         },
         {
           tag: "small",
           namespace: "html",
-          styles: { color: "gray" },
+          styles: { color: "gray", display: "block", maxWidth: "440px" },
+          properties: {
+            textContent:
+              "Gefundene Textstellen, nach Relevanz sortiert. „[Zahl]“ = lokaler " +
+              "Score, „KI:xx“ = KI-Relevanz, ‹Farbe› = Kodierung. Wähle einen " +
+              "Treffer und „Details / Paraphrase…“, um zu sehen, warum er gefunden " +
+              "wurde, und ihn in Zotero zu öffnen.",
+          },
+        },
+        {
+          tag: "small",
+          namespace: "html",
+          styles: { color: "gray", display: "block", marginTop: "4px" },
           properties: {
             textContent: `${findings.length} Fundstelle(n) · letzte Analyse: ${lastRun}`,
           },

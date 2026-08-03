@@ -1,6 +1,11 @@
 import { DialogHelper, ProgressWindowHelper } from "zotero-plugin-toolkit";
 import { ProjectManager } from "../projects/projectManager";
-import { QUALITY_CRITERIA, RATINGS, qualityScore } from "./quality";
+import {
+  QUALITY_CRITERIA,
+  RATINGS,
+  activeCriteria,
+  qualityScore,
+} from "./quality";
 import { assessQuality } from "../ai/aiService";
 import { isAIReady } from "../ai/aiConfig";
 import { getItemTextByKey } from "../search/searchEngine";
@@ -59,12 +64,13 @@ async function openQualityForm(
   rec: ScreeningRecord,
 ): Promise<void> {
   const existing = await pm.getQuality(project.projectId, rec.itemKey);
+  const criteria = activeCriteria(project);
   const data: Record<string, any> = { note: existing?.note ?? "" };
-  for (const c of QUALITY_CRITERIA) {
+  for (const c of criteria) {
     data[c.id] = existing?.ratings?.[c.id] ?? "unclear";
   }
 
-  const dialog = new DialogHelper(QUALITY_CRITERIA.length + 2, 2);
+  const dialog = new DialogHelper(criteria.length + 2, 2);
   dialog.addCell(0, 0, {
     tag: "h3",
     namespace: "html",
@@ -72,7 +78,7 @@ async function openQualityForm(
       textContent: `Qualität — ${rec.creator} ${rec.year}`.trim(),
     },
   });
-  QUALITY_CRITERIA.forEach((c, i) => {
+  criteria.forEach((c, i) => {
     const row = i + 1;
     dialog
       .addCell(row, 0, {
@@ -94,7 +100,7 @@ async function openQualityForm(
         })) as any,
       });
   });
-  const noteRow = QUALITY_CRITERIA.length + 1;
+  const noteRow = criteria.length + 1;
   dialog
     .addCell(noteRow, 0, {
       tag: "label",
@@ -121,7 +127,7 @@ async function openQualityForm(
   await (data as any).unloadLock?.promise;
   if (data._lastButtonId === "save") {
     const ratings: Record<string, string> = {};
-    for (const c of QUALITY_CRITERIA) ratings[c.id] = String(data[c.id]);
+    for (const c of criteria) ratings[c.id] = String(data[c.id]);
     await pm.upsertQuality(project.projectId, {
       itemKey: rec.itemKey,
       title: rec.title,
@@ -163,10 +169,80 @@ async function batchQuality(pm: ProjectManager, project: Project): Promise<void>
     });
   }
   pw.changeLine({
-    text: `Fertig: ${done - errors} bewertet${errors ? `, ${errors} Fehler` : ""}. Bitte prüfen.`,
+    text: `Fertig: ${done - errors} bewertet${errors ? `, ${errors} Fehler` : ""}.`,
     progress: 100,
   });
   pw.startCloseTimer(4000);
+  mainWindow().alert(
+    `Qualitätsbewertung abgeschlossen.\n\n${done - errors} von ${items.length} ` +
+      `Studie(n) bewertet${errors ? `, ${errors} Fehler` : ""}.\n\n` +
+      "Prüfe/bestätige die Kriterien mit „Bearbeiten…“ und exportiere die " +
+      "„Qualitätsmatrix (CSV)“.",
+  );
+}
+
+/** Dialog to enable/disable quality criteria (classic SR checklist). */
+async function openCriteriaDialog(
+  pm: ProjectManager,
+  project: Project,
+): Promise<boolean> {
+  const active = new Set(activeCriteria(project).map((c) => c.id));
+  const dialog = new DialogHelper(QUALITY_CRITERIA.length + 2, 1);
+  dialog.addCell(0, 0, {
+    tag: "div",
+    namespace: "html",
+    styles: { maxWidth: "420px" },
+    properties: {
+      textContent:
+        "Wähle die Qualitätskriterien, die bewertet werden sollen. " +
+        "Abgewählte Kriterien entfallen in KI-Bewertung, Formular, Score und Matrix.",
+    },
+  });
+  QUALITY_CRITERIA.forEach((c, i) => {
+    dialog.addCell(i + 1, 0, {
+      tag: "div",
+      namespace: "html",
+      styles: { display: "flex", alignItems: "center", gap: "6px", padding: "2px 0" },
+      children: [
+        {
+          tag: "input",
+          namespace: "html",
+          id: `crit-${c.id}`,
+          attributes: {
+            type: "checkbox",
+            ...(active.has(c.id) ? { checked: "checked" } : {}),
+          },
+        },
+        {
+          tag: "label",
+          namespace: "html",
+          attributes: { for: `crit-${c.id}` },
+          properties: { textContent: c.label },
+        },
+      ],
+    });
+  });
+  dialog
+    .addButton("Speichern", "save")
+    .addButton("Abbrechen", "cancel")
+    .setDialogData({});
+  dialog.open("Qualitätskriterien wählen", {
+    centerscreen: true,
+    fitContent: true,
+  });
+  await (dialog.dialogData as any).unloadLock?.promise;
+  if (dialog.dialogData._lastButtonId !== "save") return false;
+
+  const doc = dialog.window.document;
+  const ids = QUALITY_CRITERIA.filter(
+    (c) => (doc.getElementById(`crit-${c.id}`) as HTMLInputElement | null)?.checked,
+  ).map((c) => c.id);
+  if (ids.length === 0) {
+    mainWindow().alert("Mindestens ein Kriterium muss aktiv bleiben.");
+    return false;
+  }
+  await pm.setQualityCriteria(project.projectId, ids);
+  return true;
 }
 
 export async function openQuality(
@@ -187,7 +263,9 @@ export async function openQuality(
     items.length > 0
       ? items.map((r) => {
           const q = byKey.get(r.itemKey);
-          const s = q ? ` (${qualityScore(q.ratings).score}%)` : "";
+          const s = q
+            ? ` (${qualityScore(q.ratings, activeCriteria(project)).score}%)`
+            : "";
           return {
             tag: "option",
             namespace: "html",
@@ -233,7 +311,18 @@ export async function openQuality(
         {
           tag: "small",
           namespace: "html",
-          styles: { color: "gray" },
+          styles: { color: "gray", display: "block", maxWidth: "440px" },
+          properties: {
+            textContent:
+              "Bewertet die methodische Qualität / Risk of Bias je eingeschlossener " +
+              "Studie anhand von Kriterien (erfüllt/teilweise/nicht/unklar) → Score. " +
+              "Kriterien unter „Kriterien…“ anpassbar; Ausgabe: „Qualitätsmatrix (CSV)“.",
+          },
+        },
+        {
+          tag: "small",
+          namespace: "html",
+          styles: { color: "gray", display: "block", marginTop: "4px" },
           properties: {
             textContent: `${items.length} eingeschlossene Studie(n) · ${assessments.length} bewertet`,
           },
@@ -276,6 +365,15 @@ export async function openQuality(
         onClick: async () => {
           const rec = selectedRec();
           if (rec) await openQualityForm(pm, project, rec);
+        },
+      },
+      {
+        label: "Kriterien…",
+        title:
+          "Qualitätskriterien ein-/ausschalten (klassische SR-Checkliste). " +
+          "Wirkt auf KI-Bewertung, Formular, Score und Matrix.",
+        onClick: async () => {
+          if (await openCriteriaDialog(pm, project)) reopen();
         },
       },
       {

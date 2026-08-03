@@ -49,17 +49,23 @@ async function callAnthropic(
     ? data.content.find((b: any) => b.type === "text")
     : null;
   if (!block?.text) {
+    if (data.stop_reason === "max_tokens") {
+      throw new AIError(
+        "Das Modell hat das Token-Limit erreicht, bevor eine Antwort kam. " +
+          "Bitte in den KI-Einstellungen „Antwort-Token“ erhöhen.",
+      );
+    }
     throw new AIError("Leere Antwort vom Modell.");
   }
   return String(block.text).trim();
 }
 
-async function callOpenAICompatible(
+async function openAIRequest(
   cfg: AIConfig,
   system: string,
   user: string,
   maxTokens: number,
-): Promise<string> {
+): Promise<{ content: string; finishReason: string }> {
   const base = cfg.baseURL.replace(/\/+$/, "");
   // Newer OpenAI/Azure models require `max_completion_tokens`; other
   // OpenAI-compatible servers (Ollama, LM Studio, vLLM) use `max_tokens`.
@@ -90,11 +96,39 @@ async function callOpenAICompatible(
     throw new AIError(`API ${res.status}: ${text.slice(0, 300)}`);
   }
   const data: any = await res.json();
-  const content = data?.choices?.[0]?.message?.content;
-  if (!content) {
+  const choice = data?.choices?.[0] ?? {};
+  const content = choice.message?.content ?? "";
+  return { content: String(content), finishReason: String(choice.finish_reason ?? "") };
+}
+
+async function callOpenAICompatible(
+  cfg: AIConfig,
+  system: string,
+  user: string,
+  maxTokens: number,
+): Promise<string> {
+  let result = await openAIRequest(cfg, system, user, maxTokens);
+
+  // Reasoning models (gpt-5 family) can spend the whole budget on internal
+  // reasoning and return empty content with finish_reason "length".
+  // Retry once with a much larger budget.
+  if (!result.content.trim() && result.finishReason === "length") {
+    log("empty content (length) – retrying with larger budget");
+    result = await openAIRequest(cfg, system, user, Math.max(maxTokens * 3, 8000));
+  }
+
+  if (!result.content.trim()) {
+    if (result.finishReason === "length") {
+      throw new AIError(
+        "Das Modell hat sein Token-Limit im internen Denken verbraucht und " +
+          "keine Antwort geliefert. Bitte in den KI-Einstellungen die " +
+          "Antwort-Token erhöhen oder ein Nicht-Reasoning-Modell wählen " +
+          "(z. B. gpt-4o, gpt-4o-mini oder claude-haiku-4-5).",
+      );
+    }
     throw new AIError("Leere Antwort vom Modell.");
   }
-  return String(content).trim();
+  return result.content.trim();
 }
 
 /**
@@ -117,11 +151,15 @@ export async function aiComplete(
   const trimmed =
     user.length > cfg.maxChars ? user.slice(0, cfg.maxChars) + " …" : user;
 
-  log(`request to ${cfg.provider} model=${cfg.model}`);
+  // Antwort-Token: mindestens der in den Einstellungen konfigurierte Wert
+  // (großzügig, damit Reasoning-/Denk-Modelle nicht abgeschnitten werden).
+  const effectiveMax = Math.max(maxTokens, cfg.maxTokens || 0);
+
+  log(`request to ${cfg.provider} model=${cfg.model} maxTokens=${effectiveMax}`);
   if (cfg.provider === "anthropic") {
-    return callAnthropic(cfg, system, trimmed, maxTokens);
+    return callAnthropic(cfg, system, trimmed, effectiveMax);
   }
-  return callOpenAICompatible(cfg, system, trimmed, maxTokens);
+  return callOpenAICompatible(cfg, system, trimmed, effectiveMax);
 }
 
 /** Simple connectivity test used by the settings dialog. */

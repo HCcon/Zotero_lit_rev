@@ -311,6 +311,17 @@ export class ProjectManager {
     return project?.qualityAssessments?.find((q) => q.itemKey === itemKey);
   }
 
+  async setQualityCriteria(
+    projectId: string,
+    ids: string[],
+  ): Promise<void> {
+    await this.ensureLoaded();
+    const project = this.data.projects.find((p) => p.projectId === projectId);
+    if (!project) return;
+    project.qualityCriteria = ids;
+    await saveData(this.data);
+  }
+
   async upsertQuality(
     projectId: string,
     quality: QualityAssessment,

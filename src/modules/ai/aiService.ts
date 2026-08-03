@@ -21,7 +21,7 @@ import {
   EXTRACTION_FIELDS,
   NOT_REPORTED,
 } from "../extraction/extraction";
-import { QUALITY_CRITERIA, RATING_IDS } from "../quality/quality";
+import { activeCriteria, RATING_IDS } from "../quality/quality";
 import { type Concept, type Finding, type Project } from "../types";
 
 /**
@@ -125,7 +125,7 @@ export async function assessQuality(
   );
   const obj = extractJSON(raw);
   const ratings: Record<string, string> = {};
-  for (const c of QUALITY_CRITERIA) {
+  for (const c of activeCriteria(project)) {
     const v = obj[c.id];
     ratings[c.id] = RATING_IDS.includes(v) ? v : "unclear";
   }

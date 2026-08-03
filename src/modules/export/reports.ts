@@ -8,7 +8,7 @@ import {
 import { codeLabel } from "../coding/codes";
 import { EXTRACTION_FIELDS } from "../extraction/extraction";
 import {
-  QUALITY_CRITERIA,
+  activeCriteria,
   qualityScore,
   ratingLabel,
 } from "../quality/quality";
@@ -30,7 +30,7 @@ function sanitize(name: string): string {
 
 async function saveWithPicker(
   title: string,
-  ext: "csv" | "md",
+  ext: "csv" | "md" | "svg" | "html",
   suggestion: string,
   content: string,
 ): Promise<string | null> {
@@ -110,6 +110,71 @@ export async function exportPrisma(project: Project): Promise<string | null> {
     `${sanitize(project.name)}-prisma.md`,
     lines.join("\n"),
   );
+}
+
+// --- PRISMA flow diagram (SVG image) --------------------------------------
+
+export async function exportPrismaSVG(
+  project: Project,
+): Promise<string | null> {
+  const c = prismaCounts(project.screening ?? []);
+  const reasons = c.exclusionByReason
+    .map((e) => `${e.reason}: ${e.count}`)
+    .join(" · ");
+
+  const box = (
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    lines: string[],
+    fill = "#eef3fb",
+  ) => {
+    const tspans = lines
+      .map(
+        (t, i) =>
+          `<tspan x="${x + w / 2}" dy="${i === 0 ? 0 : 18}">${escXml(t)}</tspan>`,
+      )
+      .join("");
+    return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="8" fill="${fill}" stroke="#4a6fa5"/>` +
+      `<text x="${x + w / 2}" y="${y + 24}" text-anchor="middle" font-family="sans-serif" font-size="13">${tspans}</text>`;
+  };
+  const arrow = (x1: number, y1: number, x2: number, y2: number) =>
+    `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="#4a6fa5" stroke-width="1.5" marker-end="url(#a)"/>`;
+
+  const cx = 60;
+  const w = 340;
+  const svg = [
+    `<svg xmlns="http://www.w3.org/2000/svg" width="640" height="560" viewBox="0 0 640 560">`,
+    `<defs><marker id="a" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto"><path d="M0,0 L8,3 L0,6 Z" fill="#4a6fa5"/></marker></defs>`,
+    `<text x="320" y="28" text-anchor="middle" font-family="sans-serif" font-size="16" font-weight="bold">PRISMA — ${escXml(project.name)}</text>`,
+    box(cx, 50, w, 46, [`Identifizierte Datensätze`, `n = ${c.identified}`]),
+    arrow(cx + w / 2, 96, cx + w / 2, 130),
+    box(cx, 130, w, 46, [`Nach Dublettenbereinigung`, `n = ${c.afterDuplicates}  (entfernt: ${c.duplicatesRemoved})`]),
+    arrow(cx + w / 2, 176, cx + w / 2, 210),
+    box(cx, 210, w, 46, [`Gescreent`, `n = ${c.afterDuplicates}`]),
+    arrow(cx + w / 2, 256, cx + w / 2, 290),
+    box(cx, 290, w, 66, [`Eingeschlossen`, `n = ${c.included}`, `(vielleicht: ${c.maybe} · offen: ${c.undecided})`], "#e7f6e7"),
+    // Exclusion side box
+    box(cx + w + 40, 210, 180, 90, [`Ausgeschlossen`, `n = ${c.excluded}`, ...(reasons ? [reasons] : [])], "#fdeeee"),
+    arrow(cx + w, 233, cx + w + 40, 233),
+    `<text x="320" y="380" text-anchor="middle" font-family="sans-serif" font-size="11" fill="gray">Erstellt: ${new Date().toISOString().slice(0, 10)} · Zotero Literature Review</text>`,
+    `</svg>`,
+  ].join("\n");
+
+  return saveWithPicker(
+    "PRISMA-Diagramm als SVG",
+    "svg",
+    `${sanitize(project.name)}-prisma.svg`,
+    svg,
+  );
+}
+
+function escXml(s: string): string {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
 }
 
 // --- Evidence table -------------------------------------------------------
@@ -193,11 +258,12 @@ export async function exportQualityMatrix(
   project: Project,
 ): Promise<string | null> {
   const assessments = project.qualityAssessments ?? [];
+  const criteria = activeCriteria(project);
   const header = [
     "Autor",
     "Jahr",
     "Titel",
-    ...QUALITY_CRITERIA.map((c) => c.label),
+    ...criteria.map((c) => c.label),
     "Score %",
     "Notiz",
   ]
@@ -208,8 +274,8 @@ export async function exportQualityMatrix(
       q.creator,
       q.year,
       q.title,
-      ...QUALITY_CRITERIA.map((c) => ratingLabel(q.ratings?.[c.id])),
-      String(qualityScore(q.ratings ?? {}).score),
+      ...criteria.map((c) => ratingLabel(q.ratings?.[c.id])),
+      String(qualityScore(q.ratings ?? {}, criteria).score),
       q.note ?? "",
     ]
       .map(csvCell)

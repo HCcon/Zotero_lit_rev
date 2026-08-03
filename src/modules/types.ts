@@ -121,6 +121,8 @@ export interface Project {
   extractions?: Extraction[];
   /** Quality assessments (Phase 4). */
   qualityAssessments?: QualityAssessment[];
+  /** Enabled quality-criterion ids (empty/undefined = all). */
+  qualityCriteria?: string[];
   /** Latest cross-study synthesis (Phase 4). */
   synthesis?: Synthesis;
   /** ISO datetime of the last analysis run. */

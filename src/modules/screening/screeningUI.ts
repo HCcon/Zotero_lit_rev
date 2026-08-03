@@ -7,8 +7,10 @@ import {
 import {
   exportEvidence,
   exportPrisma,
+  exportPrismaSVG,
   exportScreening,
 } from "../export/reports";
+import { exportAssessmentSheets } from "../export/sheets";
 import { actionColumn } from "../ui/dialogParts";
 import { type ScreeningDecision, type ScreeningRecord } from "../types";
 
@@ -299,6 +301,31 @@ export async function openScreening(
           const p = await pm.get(projectId);
           if (p) {
             const path = await exportPrisma(p);
+            if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+          }
+        },
+      },
+      {
+        label: "PRISMA-Diagramm (SVG)",
+        title:
+          "PRISMA-Flussdiagramm als Bilddatei (SVG) – im Browser/Vorschau als Bild, weiter bearbeitbar.",
+        onClick: async () => {
+          const p = await pm.get(projectId);
+          if (p) {
+            const path = await exportPrismaSVG(p);
+            if (path) mainWindow().alert(`Gespeichert:\n${path}`);
+          }
+        },
+      },
+      {
+        label: "Bewertungssheets (HTML)",
+        title:
+          "Ein Blatt je eingeschlossener Studie: Abstract, Screening-Entscheidung, Fundstellen, Extraktion, Qualität.",
+        variant: "primary",
+        onClick: async () => {
+          const p = await pm.get(projectId);
+          if (p) {
+            const path = await exportAssessmentSheets(p);
             if (path) mainWindow().alert(`Gespeichert:\n${path}`);
           }
         },

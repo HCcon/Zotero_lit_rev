@@ -21,12 +21,13 @@ export async function openAISettings(): Promise<void> {
     model: cfg.model,
     apiKey: cfg.apiKey,
     maxChars: String(cfg.maxChars),
+    maxTokens: String(cfg.maxTokens),
   };
 
   const labelStyle = { style: "margin-top: 6px; font-weight: bold;" };
   const inputStyle = { width: "460px" };
 
-  const dialog = new DialogHelper(9, 2);
+  const dialog = new DialogHelper(10, 2);
   dialog
     .addCell(0, 0, {
       tag: "label",
@@ -130,16 +131,35 @@ export async function openAISettings(): Promise<void> {
       styles: { width: "120px" },
     })
     .addCell(6, 0, {
-      tag: "small",
+      tag: "label",
       namespace: "html",
-      styles: { color: "gray" },
-      properties: {
-        textContent:
-          "Modell-Beispiele: Anthropic „claude-opus-5\" (stark) oder " +
-          "„claude-haiku-4-5\" (günstig/schnell für Massenbewertung).",
+      properties: { textContent: "Antwort-Token (max.)" },
+      attributes: labelStyle,
+    })
+    .addCell(6, 1, {
+      tag: "input",
+      namespace: "html",
+      attributes: {
+        "data-bind": "maxTokens",
+        "data-prop": "value",
+        type: "number",
       },
+      styles: { width: "120px" },
     })
     .addCell(7, 0, {
+      tag: "small",
+      namespace: "html",
+      styles: { color: "gray", maxWidth: "560px" },
+      properties: {
+        textContent:
+          "Modell-Beispiele: Anthropic „claude-opus-5“ (stark) oder " +
+          "„claude-haiku-4-5“ (günstig/schnell). OpenAI: „gpt-4o“ / „gpt-4o-mini“. " +
+          "Tipp: Für viele Bewertungen sind Nicht-Reasoning-Modelle (gpt-4o-mini, " +
+          "claude-haiku-4-5) zuverlässiger und günstiger. Reasoning-Modelle " +
+          "(gpt-5-Familie) brauchen ein hohes „Antwort-Token“-Budget (z. B. 4000+).",
+      },
+    })
+    .addCell(8, 0, {
       tag: "small",
       namespace: "html",
       styles: { color: "gray", maxWidth: "560px" },
@@ -188,5 +208,6 @@ function persist(data: Record<string, any>): void {
     model: String(data.model ?? "").trim(),
     apiKey: String(data.apiKey ?? ""),
     maxChars: Math.max(500, Number(data.maxChars) || 4000),
+    maxTokens: Math.max(512, Number(data.maxTokens) || 4000),
   });
 }

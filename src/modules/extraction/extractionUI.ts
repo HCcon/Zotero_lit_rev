@@ -154,10 +154,16 @@ async function batchExtract(
     });
   }
   pw.changeLine({
-    text: `Fertig: ${done - errors} extrahiert${errors ? `, ${errors} Fehler` : ""}. Bitte prüfen.`,
+    text: `Fertig: ${done - errors} extrahiert${errors ? `, ${errors} Fehler` : ""}.`,
     progress: 100,
   });
   pw.startCloseTimer(4000);
+  mainWindow().alert(
+    `Extraktion abgeschlossen.\n\n${done - errors} von ${items.length} ` +
+      `Studie(n) extrahiert${errors ? `, ${errors} Fehler` : ""}.\n\n` +
+      "Prüfe die Felder mit „Bearbeiten…“ und exportiere sie über " +
+      "„Studiencharakteristika (CSV)“.",
+  );
 }
 
 export async function openExtraction(
@@ -221,7 +227,18 @@ export async function openExtraction(
         {
           tag: "small",
           namespace: "html",
-          styles: { color: "gray" },
+          styles: { color: "gray", display: "block", maxWidth: "440px" },
+          properties: {
+            textContent:
+              "Erfasst je eingeschlossener Studie 16 Merkmale (Methode, Stichprobe, " +
+              "Ergebnisse, Limitationen …). Per KI vorgeschlagen, manuell prüfbar; " +
+              "Ausgabe: „Studiencharakteristika (CSV)“.",
+          },
+        },
+        {
+          tag: "small",
+          namespace: "html",
+          styles: { color: "gray", display: "block", marginTop: "4px" },
           properties: {
             textContent: `${items.length} eingeschlossene Studie(n) · ${extractions.length} extrahiert`,
           },
