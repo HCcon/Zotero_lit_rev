@@ -1,6 +1,6 @@
 {
   "name": "zotero-lit-rev",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "Zotero 7 plugin for AI-assisted systematic literature review",
   "config": {
     "addonName": "Zotero Literature Review",

@@ -61,20 +61,28 @@ async function callOpenAICompatible(
   maxTokens: number,
 ): Promise<string> {
   const base = cfg.baseURL.replace(/\/+$/, "");
+  // Newer OpenAI/Azure models require `max_completion_tokens`; other
+  // OpenAI-compatible servers (Ollama, LM Studio, vLLM) use `max_tokens`.
+  const useCompletionTokens = /openai\.com|azure\.com/i.test(base);
+  const body: Record<string, any> = {
+    model: cfg.model,
+    messages: [
+      { role: "system", content: system },
+      { role: "user", content: user },
+    ],
+  };
+  if (useCompletionTokens) {
+    body.max_completion_tokens = maxTokens;
+  } else {
+    body.max_tokens = maxTokens;
+  }
   const res = await fetch(`${base}/v1/chat/completions`, {
     method: "POST",
     headers: {
       "content-type": "application/json",
       authorization: `Bearer ${cfg.apiKey}`,
     },
-    body: JSON.stringify({
-      model: cfg.model,
-      max_tokens: maxTokens,
-      messages: [
-        { role: "system", content: system },
-        { role: "user", content: user },
-      ],
-    }),
+    body: JSON.stringify(body),
   });
 
   if (!res.ok) {
